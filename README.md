@@ -40,37 +40,42 @@ CORTEX provides:
 
 ## Installation
 
-### Option A: Copy manually
+### One-liner (recommended)
 
 ```bash
-# From your project root:
-# 1. Copy CLAUDE.md to your project root
-curl -O https://raw.githubusercontent.com/MaverickLBP/cortex/main/CLAUDE.md
+curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash
+```
 
-# 2. Copy .claude/ to your project
+To install in a specific directory:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/your-project
+```
+
+Non-interactive (no prompts):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- -y
+```
+
+### Manual
+
+```bash
 git clone https://github.com/MaverickLBP/cortex.git /tmp/cortex
-cp -r /tmp/cortex/.claude ./
+cp /tmp/cortex/CLAUDE.md .
+cp -r /tmp/cortex/.claude .
 rm -rf /tmp/cortex
 ```
 
-### Option B: Git submodule
+### Just the loader (if your project already has a CLAUDE.md)
 
-```bash
-git submodule add https://github.com/MaverickLBP/cortex.git .cortex
-cp .cortex/CLAUDE.md .
-cp -r .cortex/.claude .
-```
-
-### Option C: Just the loader
-
-If your project already has a `CLAUDE.md`, just add this line at the top:
+Add this line at the top of your existing `CLAUDE.md`:
 
 ```markdown
-This project uses **CORTEX** for persistent project memory.
-→ Load `.claude/CLAUDE.md` for the complete system instructions.
+→ Load `.claude/CLAUDE.md` for the complete CORTEX system instructions.
 ```
 
-Then copy `.claude/` into your project as above.
+Then copy `.claude/` manually as described above.
 
 ---
 
