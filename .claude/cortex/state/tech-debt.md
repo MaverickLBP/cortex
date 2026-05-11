@@ -11,4 +11,6 @@
 **Qué es:** Descripción del workaround o deuda.
 **Por qué existe:** Contexto de la decisión.
 **Cómo resolverlo:** Dirección de la solución correcta cuando se aborde.
+
+Nota: si no hay información para un campo, escribe [por documentar] en lugar de dejarlo vacío.
 -->

@@ -28,14 +28,33 @@ Archivos activos: -
 Bloqueado por: -
 ```
 
-5. **Crear `context.md`** con esta cabecera:
+5. **Crear `context.md`** con esta estructura:
 
 ```
 # Contexto — S[NNN]-[nombre]
-> Decisiones y notas específicas de esta tarea. Actualización autónoma.
 
+> Decisiones y notas específicas de esta tarea. Actualización autónoma por CORTEX.
+> Las decisiones con impacto permanente (arquitectura global, elección de librería) deben duplicarse en `memory/decisions.md`.
+
+---
+
+<!-- Formato para decisiones:
+
+## Decisión: [título breve]
+**Qué:** Descripción de la decisión.
+**Alternativas:** Qué otras opciones se consideraron (o "ninguna").
+**Por qué:** Justificación.
+-->
+
+<!-- Formato para notas:
+
+## Nota: [asunto]
+**Detalle:** Información relevante para la sesión.
+-->
 ```
 
 6. **Actualizar `.claude/cortex/sessions/index.md`**: añadir la sesión nueva a la tabla y marcarla como ACTIVA. Si había otra sesión ACTIVA, cambiarla a PAUSADA.
 
 7. **Confirmar al usuario**: mostrar el código de sesión creado y el `state.md` inicial. Preguntar si quiere hacer un preflight (revisión previa) antes de comenzar.
+
+8. **Verificar**: confirma que `state.md` y `context.md` existen en la ruta correcta y que `index.md` refleja el cambio.

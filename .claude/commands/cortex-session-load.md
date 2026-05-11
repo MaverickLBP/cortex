@@ -34,4 +34,6 @@ Notas de contexto:
    - Esta sesión: ACTIVA
    - Sesión anteriormente activa (si la hubiera): PAUSADA
 
-5. **Preguntar** si el usuario quiere empezar directamente con el siguiente paso indicado.
+5. **Verificar**: confirma que `index.md` refleja correctamente el cambio (esta sesión ACTIVA, la anterior PAUSADA).
+
+6. **Preguntar** si el usuario quiere empezar directamente con el siguiente paso indicado.

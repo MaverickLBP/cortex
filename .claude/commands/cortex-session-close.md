@@ -24,4 +24,6 @@ Marca la sesión activa como completada y cierra el contexto de la tarea.
    - Estado de la sesión: COMPLETADA
    - Sin sesión activa marcada
 
-6. **Confirmar** el cierre con un resumen de lo que se hizo en la sesión (objetivo → resultado).
+6. **Verificar**: confirma que `state.md` refleja `Estado: COMPLETADA` y que `index.md` ya no marca la sesión como ACTIVA.
+
+7. **Confirmar** el cierre con un resumen de lo que se hizo en la sesión (objetivo → resultado).

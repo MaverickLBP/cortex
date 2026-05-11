@@ -9,4 +9,6 @@
 **Pedido originalmente:** Qué se pidió hacer.
 **Detectado:** Qué está cambiando o expandiéndose.
 **Acción tomada:** Se avisó al usuario / Se limitó el scope / Se acordó expandir.
+
+Nota: si no hay información para un campo, escribe [por documentar] en lugar de dejarlo vacío.
 -->

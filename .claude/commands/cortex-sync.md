@@ -24,7 +24,11 @@ Puede invocarse como `/cortex-sync` en Claude Code, o por lenguaje natural ("Sin
 
 - `.claude/cortex/memory/` — El conocimiento experiencial acumulado no se regenera
 - `.claude/cortex/sessions/` — El historial de sesiones no se modifica
-- `.claude/cortex/state/tech-debt.md` — La deuda técnica acumulada se mantiene
+- `.claude/cortex/state/` — Ni `tech-debt.md` ni `scope.md`; la deuda técnica y el control de alcance se gestionan autónomamente (ver §2.2 de CLAUDE.md)
+
+## Verificación
+
+Al terminar, confirma que los archivos modificados existen y que no se introdujeron `—` como placeholder donde antes había información.
 
 ## Al terminar
 

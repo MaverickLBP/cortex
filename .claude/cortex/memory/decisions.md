@@ -10,4 +10,6 @@
 **Motivo:** Por qué.
 **Descartado:** Qué alternativas se rechazaron y por qué.
 **Contexto:** Sesión o tarea relacionada (opcional).
+
+Nota: si no hay información para un campo, escribe [por documentar] en lugar de dejarlo vacío.
 -->

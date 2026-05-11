@@ -9,4 +9,6 @@
 **Qué es:** Descripción breve.
 **Cuándo usarlo:** En qué situaciones aplica.
 **Ejemplo:** Referencia a un archivo real del proyecto donde se usa.
+
+Nota: si no hay información para un campo, escribe [por documentar] en lugar de dejarlo vacío.
 -->

@@ -35,29 +35,40 @@ Si `.claude/cortex/sessions/index.md` indica una sesión ACTIVA, cargar también
 
 ---
 
-## 2. Comportamiento autónomo obligatorio
+## 2. Ciclo de comportamiento autónomo
 
-Después de cada acción, evalúa en silencio si aplica alguno de estos casos y **actualiza el archivo correspondiente sin que el usuario lo pida**:
+### 2.1 Antes de actuar: consultar la memoria
+
+Revisa estos archivos **antes** de proponer soluciones o escribir código. Que esté en esta sección y no en la de "después" es intencionado.
+
+- `.claude/cortex/memory/decisions.md` — No propongas algo ya descartado en decisiones previas.
+- `.claude/cortex/memory/gotchas.md` — Si trabajas en un área con trampas conocidas, avísalas antes de empezar.
+- `.claude/cortex/memory/patterns.md` — El código nuevo debe seguir los patrones documentados.
+- `.claude/cortex/sessions/[código]/context.md` — Si hay sesión ACTIVA, revisa el contexto específico antes de actuar.
+
+### 2.2 Después de actuar: registrar
+
+Evalúa en silencio si aplica alguno de estos casos y **actualiza el archivo correspondiente sin que el usuario lo pida**:
 
 | Si... | Entonces actualiza |
 |---|---|
-| Tomaste una decisión técnica importante (arquitectura, librería, patrón, enfoque) | `.claude/cortex/memory/decisions.md` |
-| Encontraste un comportamiento inesperado, bug no obvio, o trampa de una librería | `.claude/cortex/memory/gotchas.md` |
-| Detectaste un patrón que se repite en el código del proyecto | `.claude/cortex/memory/patterns.md` |
-| Hiciste un workaround o solución temporal que genera deuda técnica | `.claude/cortex/state/tech-debt.md` |
-| El alcance de la tarea está cambiando respecto a lo pedido originalmente | `.claude/cortex/state/scope.md` **y avisa al usuario** |
+| Elegiste entre múltiples opciones técnicas (arquitectura, librería, approach, algoritmo) y la decisión no es obvia, o descartaste alternativas viables | `.claude/cortex/memory/decisions.md` |
+| Encontraste un comportamiento que contradice la documentación oficial, o una trampa que le costaría tiempo a otro developer | `.claude/cortex/memory/gotchas.md` |
+| Notaste el mismo approach, naming o estructura apareciendo en **2+ lugares** (y no es imposición del framework) | `.claude/cortex/memory/patterns.md` |
+| Implementaste algo que sabes que deberías hacer de otra forma pero no puedes ahora (por tiempo, restricciones externas, deuda intencionada) | `.claude/cortex/state/tech-debt.md` |
+| La tarea se está expandiendo respecto a lo pedido originalmente (más archivos, más features, refactors no solicitados) | `.claude/cortex/state/scope.md` **y avisa al usuario** |
 
 **No anuncies** estas actualizaciones a menos que sean relevantes para la conversación.
 
-### Consulta antes de actuar
+**Relación context.md vs decisions.md:** Si hay sesión ACTIVA, las decisiones específicas de la tarea van a `sessions/[código]/context.md`. Si la decisión tiene relevancia más allá de la sesión actual (arquitectura global, elección de librería, convención del proyecto), regístrala **también** en `memory/decisions.md`. La duplicación es deliberada: `context.md` es el detalle de la sesión, `decisions.md` es el índice permanente.
 
-- Revisa `.claude/cortex/memory/decisions.md` antes de proponer soluciones. No vuelvas a proponer algo ya descartado.
-- Revisa `.claude/cortex/memory/gotchas.md` antes de trabajar en un área conocida. Avisa si hay trampas relevantes.
-- Respeta los patrones en `.claude/cortex/memory/patterns.md`. El código nuevo debe ser consistente con el proyecto.
+### 2.3 Después de escribir: verificar
 
-### Sesión activa
+Tras escribir o modificar cualquier archivo en `.claude/cortex/`:
 
-Si hay una sesión marcada como ACTIVA en `.claude/cortex/sessions/index.md`, trabaja dentro de su contexto. Registra decisiones específicas de esa tarea en `.claude/cortex/sessions/[código]/context.md`.
+1. **Vuelve a leer el archivo** y confirma que todos los campos del formato están poblados.
+2. Si un campo quedó sin información, usa explícitamente **`[por documentar]`** en lugar de dejarlo vacío o con `—`.
+3. Si el archivo es nuevo, confirma que se creó en la ruta correcta y que el directorio padre existe.
 
 ---
 
