@@ -127,4 +127,8 @@ Manual commands are available for seeding the knowledge base:
 
 ## License
 
-MIT
+MIT with Non-Commercial Redistribution — see [LICENSE](./LICENSE).
+
+You are free to use CORTEX as a development tool in any project, including
+commercial projects. You may NOT sell, sublicense, or charge for the Software
+itself.
