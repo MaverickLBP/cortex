@@ -11,7 +11,7 @@ Guarda el estado exacto de la sesión activa antes de pausarla o cerrar el traba
    - ¿Cuál es exactamente el siguiente paso al retomar? (debe ser suficientemente específico para empezar sin fricción)
    - ¿Hay algún bloqueo o dependencia pendiente?
 
-3. **Actualizar `.claude/cortex/sessions/[código]/state.md`** con:
+3. **Actualizar `.claude/cortex/sessions/[nombre]/state.md`** con:
    - Último paso completado (específico, no genérico)
    - Siguiente paso exacto
    - Archivos que estaban activos o son relevantes para retomar

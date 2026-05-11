@@ -2,17 +2,17 @@
 
 Carga una sesión pausada y restaura el contexto completo para retomar el trabajo sin fricción.
 
-Ejemplo de uso: `/cortex-session-load S002` (Claude Code) o "Carga sesión S002" / "Retoma S002" (lenguaje natural)
+Ejemplo de uso: `/cortex-session-load auth-refactor` (Claude Code) o "Carga sesión auth-refactor" / "Retoma auth-refactor" (lenguaje natural)
 
 ## Pasos
 
-1. **Leer `.claude/cortex/sessions/[código]/state.md`** y `.claude/cortex/sessions/[código]/context.md`
+1. **Leer `.claude/cortex/sessions/[nombre]/state.md`** y `.claude/cortex/sessions/[nombre]/context.md`
 
 2. **Presentar resumen de retoma** de forma clara y estructurada:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Retomando: [código] — [nombre]
+Retomando: [nombre]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Objetivo:         [tarea]
 Último paso:      [último paso completado]

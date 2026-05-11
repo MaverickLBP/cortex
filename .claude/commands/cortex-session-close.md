@@ -13,7 +13,7 @@ Marca la sesión activa como completada y cierra el contexto de la tarea.
 
 3. **Registrar lo que el usuario indique** en los archivos de memory/state correspondientes.
 
-4. **Actualizar `.claude/cortex/sessions/[código]/state.md`**:
+4. **Actualizar `.claude/cortex/sessions/[nombre]/state.md`**:
    ```
    Estado: COMPLETADA
    Cerrada: [fecha actual]

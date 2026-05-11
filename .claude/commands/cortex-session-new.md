@@ -1,22 +1,19 @@
 # cortex-session-new
 
-Crea una nueva sesión de trabajo con código único. El usuario proporciona un nombre descriptivo.
+Crea una nueva sesión de trabajo. El usuario proporciona el nombre que se usará como identificador único.
 
 Ejemplo de uso: `/cortex-session-new auth-refactor` (Claude Code) o "Nueva sesión: auth-refactor" (lenguaje natural)
 
 ## Pasos
 
-1. **Leer `.claude/cortex/sessions/index.md`** para determinar el siguiente número correlativo (S001, S002, S003...). Si el archivo está vacío, empezar por S001.
+1. **Usar el nombre proporcionado** como identificador de la sesión. El nombre define la carpeta y todas las referencias.
 
-2. **Construir el código de sesión**: `S[NNN]-[nombre-proporcionado]`
-   Ejemplo: `S003-auth-refactor`
+2. **Crear la carpeta** `.claude/cortex/sessions/[nombre]/`
 
-3. **Crear la carpeta** `.claude/cortex/sessions/S[NNN]-[nombre]/`
-
-4. **Crear `state.md`** con esta estructura exacta:
+3. **Crear `state.md`** con esta estructura exacta:
 
 ```
-Código: S[NNN]-[nombre]
+Sesión: [nombre]
 Tarea: [pedir al usuario que describa el objetivo en una frase clara]
 Estado: EN PROGRESO
 Creada: [fecha actual YYYY-MM-DD]
@@ -28,10 +25,10 @@ Archivos activos: -
 Bloqueado por: -
 ```
 
-5. **Crear `context.md`** con esta estructura:
+4. **Crear `context.md`** con esta estructura:
 
 ```
-# Contexto — S[NNN]-[nombre]
+# Contexto — [nombre]
 
 > Decisiones y notas específicas de esta tarea. Actualización autónoma por CORTEX.
 > Las decisiones con impacto permanente (arquitectura global, elección de librería) deben duplicarse en `memory/decisions.md`.
@@ -53,8 +50,8 @@ Bloqueado por: -
 -->
 ```
 
-6. **Actualizar `.claude/cortex/sessions/index.md`**: añadir la sesión nueva a la tabla y marcarla como ACTIVA. Si había otra sesión ACTIVA, cambiarla a PAUSADA.
+5. **Actualizar `.claude/cortex/sessions/index.md`**: añadir la sesión nueva a la tabla y marcarla como ACTIVA. Si había otra sesión ACTIVA, cambiarla a PAUSADA.
 
-7. **Confirmar al usuario**: mostrar el código de sesión creado y el `state.md` inicial. Preguntar si quiere hacer un preflight (revisión previa) antes de comenzar.
+6. **Confirmar al usuario**: mostrar la sesión creada y el `state.md` inicial. Preguntar si quiere hacer un preflight (revisión previa) antes de comenzar.
 
-8. **Verificar**: confirma que `state.md` y `context.md` existen en la ruta correcta y que `index.md` refleja el cambio.
+7. **Verificar**: confirma que `state.md` y `context.md` existen en la ruta correcta y que `index.md` refleja el cambio.

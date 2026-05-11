@@ -14,18 +14,18 @@ SESIONES DEL PROYECTO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ▶ ACTIVA
-  S003 — payment-api
+  payment-api
   Siguiente paso: Implementar webhook de confirmación
 
 ⏸ EN PROGRESO (pausadas)
-  S001 — auth-refactor
+  auth-refactor
   Siguiente paso: Revisar tests en /tests/auth/
 
 ✓ COMPLETADAS
-  S002 — bug-login (2025-01-14)
+  bug-login (2025-01-14)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 3. **Si no hay sesiones**, informar al usuario y recordarle que puede crear una con el comando `cortex-session-new` (o diciendo "Nueva sesión: [nombre]").
 
-4. **Si hay varias EN PROGRESO**, recordar que se puede cambiar de contexto con `cortex-session-load [código]` (o "Carga sesión [código]").
+4. **Si hay varias EN PROGRESO**, recordar que se puede cambiar de contexto con `cortex-session-load [nombre]` (o "Carga sesión [nombre]").

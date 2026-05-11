@@ -30,8 +30,8 @@ Al iniciar la sesión o al comenzar una tarea, el asistente DEBE cargar los sigu
 
 Si `.claude/cortex/sessions/index.md` indica una sesión ACTIVA, cargar también:
 
-- `.claude/cortex/sessions/[código]/state.md`
-- `.claude/cortex/sessions/[código]/context.md`
+- `.claude/cortex/sessions/[nombre]/state.md`
+- `.claude/cortex/sessions/[nombre]/context.md`
 
 ---
 
@@ -44,7 +44,7 @@ Revisa estos archivos **antes** de proponer soluciones o escribir código. Que e
 - `.claude/cortex/memory/decisions.md` — No propongas algo ya descartado en decisiones previas.
 - `.claude/cortex/memory/gotchas.md` — Si trabajas en un área con trampas conocidas, avísalas antes de empezar.
 - `.claude/cortex/memory/patterns.md` — El código nuevo debe seguir los patrones documentados.
-- `.claude/cortex/sessions/[código]/context.md` — Si hay sesión ACTIVA, revisa el contexto específico antes de actuar.
+- `.claude/cortex/sessions/[nombre]/context.md` — Si hay sesión ACTIVA, revisa el contexto específico antes de actuar.
 
 ### 2.2 Después de actuar: registrar
 
@@ -60,7 +60,7 @@ Evalúa en silencio si aplica alguno de estos casos y **actualiza el archivo cor
 
 **No anuncies** estas actualizaciones a menos que sean relevantes para la conversación.
 
-**Relación context.md vs decisions.md:** Si hay sesión ACTIVA, las decisiones específicas de la tarea van a `sessions/[código]/context.md`. Si la decisión tiene relevancia más allá de la sesión actual (arquitectura global, elección de librería, convención del proyecto), regístrala **también** en `memory/decisions.md`. La duplicación es deliberada: `context.md` es el detalle de la sesión, `decisions.md` es el índice permanente.
+**Relación context.md vs decisions.md:** Si hay sesión ACTIVA, las decisiones específicas de la tarea van a `sessions/[nombre]/context.md`. Si la decisión tiene relevancia más allá de la sesión actual (arquitectura global, elección de librería, convención del proyecto), regístrala **también** en `memory/decisions.md`. La duplicación es deliberada: `context.md` es el detalle de la sesión, `decisions.md` es el índice permanente.
 
 ### 2.3 Después de escribir: verificar
 
@@ -88,7 +88,7 @@ Cuando el usuario invoque un comando, el asistente debe leer el archivo correspo
 | **cortex-sync** | `/cortex-sync` | "Sincroniza CORTEX" / "actualiza el mapa" | Re-sincroniza MAP y OPS tras cambios estructurales |
 | **cortex-onboard** | `/cortex-onboard` | "Genera onboarding" / "guía para nuevo dev" | Crea documento de onboarding basado en el knowledge base |
 | **cortex-session-new** | `/cortex-session-new [nombre]` | "Nueva sesión: [nombre]" | Crea una nueva sesión de trabajo |
-| **cortex-session-load** | `/cortex-session-load [código]` | "Carga sesión [código]" / "retoma [código]" | Restaura el contexto de una sesión pausada |
+| **cortex-session-load** | `/cortex-session-load [nombre]` | "Carga sesión [nombre]" / "retoma [nombre]" | Restaura el contexto de una sesión pausada |
 | **cortex-session-save** | `/cortex-session-save` | "Guarda sesión" / "pausa" / "guarda estado" | Persiste el estado exacto de la sesión activa |
 | **cortex-session-list** | `/cortex-session-list` | "Lista sesiones" / "muestra sesiones" | Muestra todas las sesiones con su estado |
 | **cortex-session-close** | `/cortex-session-close` | "Cierra sesión" / "finaliza sesión" | Marca la sesión activa como completada |
