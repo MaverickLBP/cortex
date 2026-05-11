@@ -52,12 +52,6 @@ To install in a specific directory:
 curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/your-project
 ```
 
-Non-interactive (no prompts):
-
-```bash
-curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- -y
-```
-
 ### Manual
 
 ```bash
