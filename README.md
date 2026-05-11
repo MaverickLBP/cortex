@@ -45,10 +45,10 @@ CORTEX provides:
 ```bash
 # From your project root:
 # 1. Copy CLAUDE.md to your project root
-curl -O https://raw.githubusercontent.com/[user]/cortex/main/CLAUDE.md
+curl -O https://raw.githubusercontent.com/MaverickLBP/cortex/main/CLAUDE.md
 
 # 2. Copy .claude/ to your project
-git clone https://github.com/[user]/cortex.git /tmp/cortex
+git clone https://github.com/MaverickLBP/cortex.git /tmp/cortex
 cp -r /tmp/cortex/.claude ./
 rm -rf /tmp/cortex
 ```
@@ -56,7 +56,7 @@ rm -rf /tmp/cortex
 ### Option B: Git submodule
 
 ```bash
-git submodule add https://github.com/[user]/cortex.git .cortex
+git submodule add https://github.com/MaverickLBP/cortex.git .cortex
 cp .cortex/CLAUDE.md .
 cp -r .cortex/.claude .
 ```
