@@ -15,12 +15,9 @@ set -euo pipefail
 #      ./install.sh
 #      ./install.sh /ruta/al/proyecto
 #
-# Flags:
-#   -y, --yes    No preguntar, usar valores por defecto (non-interactive)
 # ──────────────────────────────────────────────
 
 REPO_URL="https://github.com/MaverickLBP/cortex.git"
-REPO_RAW="https://github.com/MaverickLBP/cortex/raw/main"
 BRANCH="main"
 
 # ── Colores ────────────────────────────────────
@@ -30,20 +27,8 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# ── Parsear argumentos ─────────────────────────
-TARGET=""
-AUTO=false
-POS_ARGS=()
-
-for arg in "$@"; do
-  case "$arg" in
-    -y|--yes|-f|--force) AUTO=true ;;
-    -*) echo -e "${RED}✖ Opción desconocida: $arg${NC}"; exit 1 ;;
-    *) POS_ARGS+=("$arg") ;;
-  esac
-done
-
-TARGET="${POS_ARGS[0]:-$(pwd)}"
+# ── Argumento: directorio destino ──────────────
+TARGET="${1:-$(pwd)}"
 
 # ── Banner ─────────────────────────────────────
 echo ""
@@ -111,14 +96,13 @@ if [ -f "$CLAUDE_DEST" ]; then
     echo -e "  ${YELLOW}  Añade esta línea manualmente si no está:${NC}"
     echo -e "  ${YELLOW}  → Carga .claude/CLAUDE.md para las instrucciones completas.${NC}"
     COPY_CLAUDE=false
-  elif [ "$AUTO" = false ]; then
+  else
     echo -e "  ${YELLOW}⚠ Ya existe CLAUDE.md. ¿Sobrescribir? (s/N)${NC}"
     read -r CONFIRM < /dev/tty || true
     if [ "$CONFIRM" != "s" ] && [ "$CONFIRM" != "S" ]; then
       COPY_CLAUDE=false
     fi
   fi
-  # Si AUTO=true y el existente es pequeño (<5 líneas), se sobrescribe
 fi
 
 if [ "$COPY_CLAUDE" = true ]; then
@@ -130,15 +114,12 @@ fi
 
 # ── Instalar .claude/ ──────────────────────────
 if [ -d "$CLAUDE_DOT_DEST" ]; then
-  if [ "$AUTO" = false ]; then
-    echo -e "  ${YELLOW}⚠ Ya existe .claude/ en el destino.${NC}"
-    echo -e "  ${YELLOW}  ¿Actualizar? (Se conservarán tus datos) (s/N)${NC}"
-    read -r CONFIRM < /dev/tty || true
-    if [ "$CONFIRM" != "s" ] && [ "$CONFIRM" != "S" ]; then
+  echo -e "  ${YELLOW}⚠ Ya existe .claude/ en el destino.${NC}"
+  echo -e "  ${YELLOW}  ¿Actualizar? (Se conservarán tus datos) (s/N)${NC}"
+  read -r CONFIRM < /dev/tty || true
+  if [ "$CONFIRM" != "s" ] && [ "$CONFIRM" != "S" ]; then
       echo -e "  ${RED}✖ Instalación cancelada.${NC}"
-      cleanup
       exit 1
-    fi
   fi
 
   # Backup de datos existentes (memoria, estado, sesiones)
