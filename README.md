@@ -78,14 +78,14 @@ Then copy `.claude/` manually as described above.
 Once installed, just start working. New sessions track your work automatically:
 
 ```
-User: "Nueva sesión: refactor auth module"
-Agent: Creates session S001, loads context, begins work.
+User: "Nueva sesión: refactor-auth"
+Agent: Creates refactor-auth, loads context, begins work.
 ```
 
 When you come back after a break:
 
 ```
-User: "Carga sesión S001"
+User: "Carga sesión refactor-auth"
 Agent: Restores full context — last step, active files, blockers.
 ```
 

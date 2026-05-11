@@ -443,18 +443,18 @@
       <div class="card-grid">
         <div class="card">
           <h3><span class="icon">📋</span> index.md</h3>
-          <p>Registro central de todas las sesiones. Indica cuál está activa y muestra el historial con estado, código y fechas.</p>
+          <p>Registro central de todas las sesiones. Indica cuál está activa y muestra el historial con estado, nombre y fechas.</p>
           <span class="path">.claude/cortex/sessions/index.md</span>
         </div>
         <div class="card">
-          <h3><span class="icon">📄</span> [código]/state.md</h3>
+          <h3><span class="icon">📄</span> [nombre]/state.md</h3>
           <p>Estado exacto de una sesión: último paso completado, archivos activos, blockers, y resumen del progreso.</p>
-          <span class="path">.claude/cortex/sessions/S001/state.md</span>
+          <span class="path">.claude/cortex/sessions/ejemplo/state.md</span>
         </div>
         <div class="card">
-          <h3><span class="icon">📄</span> [código]/context.md</h3>
+          <h3><span class="icon">📄</span> [nombre]/context.md</h3>
           <p>Contexto detallado de la sesión: decisiones específicas, hallazgos y notas tomadas durante la sesión.</p>
-          <span class="path">.claude/cortex/sessions/S001/context.md</span>
+          <span class="path">.claude/cortex/sessions/ejemplo/context.md</span>
         </div>
       </div>
     </div>
@@ -520,8 +520,8 @@
             </tr>
             <tr>
               <td>cortex-session-load</td>
-              <td><code>/cortex-session-load [código]</code></td>
-              <td>"Carga sesión [código]"</td>
+              <td><code>/cortex-session-load [nombre]</code></td>
+              <td>"Carga sesión [nombre]"</td>
               <td>Restaura el contexto de una sesión pausada</td>
             </tr>
             <tr>
