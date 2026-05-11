@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CORTEX — Context-Oriented Runtime Technical Experience</title>
+  <style>
+    /* ── Reset & Base ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --bg-card:   #161b22;
+      --bg-hover:  #1c2333;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --text-dim:  #8b949e;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --accent3:   #d29922;
+      --accent4:   #f78166;
+      --accent5:   #bc8cff;
+      --radius:    8px;
+      --shadow:    0 2px 12px rgba(0,0,0,.4);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ─────────────────────────────────── */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Nav ────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+    }
+    nav .container {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    nav .logo {
+      font-weight: 700; font-size: 1.1rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    nav .logo span { color: var(--accent); }
+    nav ul {
+      list-style: none; display: flex; gap: 8px;
+      flex-wrap: wrap;
+    }
+    nav ul a {
+      padding: 6px 12px; border-radius: var(--radius);
+      font-size: .85rem; color: var(--text-dim); transition: .2s;
+    }
+    nav ul a:hover {
+      background: var(--bg-card); color: var(--text); text-decoration: none;
+    }
+
+    /* ── Hero ───────────────────────────────────── */
+    header.hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    header.hero h1 {
+      font-size: 2.8rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent5));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header.hero .subtitle {
+      font-size: 1.2rem; color: var(--text-dim); margin-top: 16px;
+      max-width: 600px; margin-left: auto; margin-right: auto;
+    }
+    header.hero .tagline {
+      margin-top: 24px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    }
+    header.hero .tagline span {
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 6px 16px; border-radius: 20px;
+      font-size: .85rem; color: var(--text-dim);
+    }
+
+    /* ── Sections ───────────────────────────────── */
+    section { padding: 64px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    h2 {
+      font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    h2 .badge {
+      font-size: .7rem; font-weight: 600;
+      padding: 2px 10px; border-radius: 12px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .section-desc {
+      color: var(--text-dim); margin-bottom: 32px; font-size: .95rem;
+    }
+
+    /* ── Cards ──────────────────────────────────── */
+    .card-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      transition: border-color .2s, background .2s;
+    }
+    .card:hover { border-color: var(--accent); background: var(--bg-hover); }
+    .card h3 {
+      font-size: 1rem; font-weight: 600; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card h3 .icon { font-size: 1.2rem; }
+    .card p { font-size: .88rem; color: var(--text-dim); line-height: 1.5; }
+    .card .path {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: .78rem; color: var(--accent3);
+      margin-top: 10px; padding: 4px 8px;
+      background: rgba(210,153,34,.08); border-radius: 4px;
+      display: inline-block;
+    }
+    .card ul {
+      margin-top: 10px; padding-left: 18px; font-size: .85rem;
+      color: var(--text-dim);
+    }
+    .card ul li { margin-bottom: 4px; }
+
+    /* ── Commands Table ─────────────────────────── */
+    .table-wrap {
+      overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    table {
+      width: 100%; border-collapse: collapse; font-size: .88rem;
+    }
+    th, td {
+      text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--bg-card); font-weight: 600; font-size: .82rem;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: .03em;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-hover); }
+    td:first-child { font-weight: 600; color: var(--accent); font-family: monospace; }
+
+    /* ── Tree / Directory Structure ─────────────── */
+    .tree {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 32px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: .85rem; line-height: 1.8;
+      overflow-x: auto;
+    }
+    .tree .highlight { color: var(--accent); font-weight: 600; }
+    .tree .comment { color: var(--text-dim); font-style: italic; }
+    .tree .leaf { color: var(--accent2); }
+    .tree .branch { color: var(--accent3); }
+
+    /* ── Compatibility Table ────────────────────── */
+    .comp-table td:nth-child(2) { color: var(--accent2); font-weight: 600; }
+
+    /* ── Steps / Install ────────────────────────── */
+    .steps { counter-reset: step; }
+    .step {
+      counter-increment: step;
+      display: flex; gap: 16px; padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0; width: 36px; height: 36px;
+      border-radius: 50%; background: var(--accent);
+      color: #fff; font-weight: 700; font-size: .9rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-body h4 { font-size: 1rem; margin-bottom: 4px; }
+    .step-body p, .step-body pre { font-size: .88rem; color: var(--text-dim); }
+    .step-body pre {
+      background: var(--bg); padding: 8px 12px; border-radius: 6px;
+      margin-top: 6px; border: 1px solid var(--border);
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: .82rem;
+    }
+
+    /* ── Footer ─────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0; text-align: center;
+      color: var(--text-dim); font-size: .85rem;
+    }
+
+    /* ── Responsive ─────────────────────────────── */
+    @media (max-width: 720px) {
+      header.hero h1 { font-size: 1.8rem; }
+      header.hero { padding: 48px 0 36px; }
+      section { padding: 40px 0; }
+      nav ul { display: none; }
+      .card-grid { grid-template-columns: 1fr; }
+      .tree { padding: 16px; font-size: .78rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- NAV -->
+  <!-- ════════════════════════════════════════════ -->
+  <nav>
+    <div class="container">
+      <div class="logo">⟐ <span>CORTEX</span></div>
+      <ul>
+        <li><a href="#que-es">¿Qué es?</a></li>
+        <li><a href="#estructura">Estructura</a></li>
+        <li><a href="#componentes">Componentes</a></li>
+        <li><a href="#comandos">Comandos</a></li>
+        <li><a href="#compatibilidad">Compatibilidad</a></li>
+        <li><a href="#instalacion">Instalación</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- HERO -->
+  <!-- ════════════════════════════════════════════ -->
+  <header class="hero">
+    <div class="container">
+      <h1>Context-Oriented Runtime<br>Technical Experience</h1>
+      <p class="subtitle">
+        Un sistema de memoria persistente para asistentes de desarrollo con IA.
+        Decisiones, patrones, arquitectura y estado de sesión — todo lo que tu agente
+        necesita saber, siempre disponible.
+      </p>
+      <div class="tagline">
+        <span>🧠 Memoria persistente</span>
+        <span>⚡ Autónomo</span>
+        <span>🔌 Agnóstico de agente</span>
+        <span>📋 Sesiones</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- ¿QUÉ ES? -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="que-es">
+    <div class="container">
+      <h2>¿Qué es CORTEX?</h2>
+      <p class="section-desc">
+        CORTEX es un sistema de conocimiento que vive dentro del directorio
+        <code>.claude/</code> de tu proyecto. Proporciona contexto persistente
+        a cualquier agente de IA — Claude Code, OpenCode, Cursor, GitHub Copilot —
+        a través del archivo <code>CLAUDE.md</code>.
+      </p>
+
+      <div class="card-grid" style="margin-top:8px;">
+        <div class="card">
+          <h3><span class="icon">🧠</span> Memoria que perdura</h3>
+          <p>
+            Las decisiones técnicas, los <em>gotchas</em> y los patrones no se pierden
+            entre sesiones. Cuando vuelves, tu agente recuerda exactamente dónde lo dejaste.
+          </p>
+        </div>
+        <div class="card">
+          <h3><span class="icon">⚡</span> Autónomo</h3>
+          <p>
+            El agente registra decisiones, deuda técnica y cambios de alcance sin que
+            tengas que pedírselo. CORTEX se alimenta solo mientras trabajas.
+          </p>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🌐</span> Agnóstico de agente</h3>
+          <p>
+            Funciona con Claude Code, OpenCode, Cursor, GitHub Copilot y cualquier
+            agente que lea <code>CLAUDE.md</code>. No estás atado a una plataforma.
+          </p>
+        </div>
+        <div class="card">
+          <h3><span class="icon">📋</span> Gestión de sesiones</h3>
+          <p>
+            Crea, guarda, carga y cierra sesiones de trabajo con contexto completo.
+            Ideal para tareas largas, revisión de PRs o contextos de investigación.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- ESTRUCTURA -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="estructura">
+    <div class="container">
+      <h2>Estructura del sistema</h2>
+      <p class="section-desc">
+        CORTEX se organiza en cinco dominios — MAP, MEMORY, OPS, STATE y SESSIONS —
+        más la capa de comandos y configuración.
+      </p>
+
+      <div class="tree">
+        <strong>tu-proyecto/</strong>
+        <br>├── <span class="highlight">CLAUDE.md</span>
+        <span class="comment">← Carga CORTEX vía .claude/CLAUDE.md</span>
+        <br>└── <span class="branch">.claude/</span>
+        <span class="comment">← Sistema CORTEX</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="highlight">CLAUDE.md</span>
+        <span class="comment">← Instrucciones completas del sistema</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="leaf">settings.json</span>
+        <span class="comment">← Hooks de Claude Code</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">commands/</span>
+        <span class="comment">← Slash commands</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-init.md</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-preflight.md</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-sync.md</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-onboard.md</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-session-*.md</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; └── <span class="leaf">...</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="branch">cortex/</span>
+        <span class="comment">← Base de conocimiento persistente</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">map/</span>
+        <span class="comment">← Arquitectura y dependencias</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">memory/</span>
+        <span class="comment">← Decisiones, gotchas, patrones</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">ops/</span>
+        <span class="comment">← Entorno, workflows, onboarding</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">state/</span>
+        <span class="comment">← Scope y deuda técnica</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="branch">sessions/</span>
+        <span class="comment">← Estado y contexto de sesiones</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- COMPONENTES -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="componentes">
+    <div class="container">
+      <h2>Componentes del sistema</h2>
+      <p class="section-desc">
+        Cada dominio tiene un propósito específico dentro del ecosistema CORTEX.
+      </p>
+
+      <!-- MAP -->
+      <h3 style="margin-bottom:12px;">🗺️ MAP — Conocimiento estructural</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:20px;">
+        Generado automáticamente por <code>cortex-init</code>. Describe la arquitectura
+        del proyecto, sus dependencias y módulos.
+      </p>
+      <div class="card-grid" style="margin-bottom:40px;">
+        <div class="card">
+          <h3><span class="icon">🏗️</span> architecture.md</h3>
+          <p>Stack tecnológico, estructura de directorios, puntos de entrada, flujo general y módulos principales del proyecto.</p>
+          <span class="path">.claude/cortex/map/architecture.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">📦</span> dependencies.md</h3>
+          <p>Dependencias principales del proyecto, versiones y propósito de cada una dentro del contexto del proyecto.</p>
+          <span class="path">.claude/cortex/map/dependencies.md</span>
+        </div>
+      </div>
+
+      <!-- MEMORY -->
+      <h3 style="margin-bottom:12px;">🧠 MEMORY — Memoria activa</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:20px;">
+        Actualizado autónomamente por el agente. Siempre se carga al inicio de la sesión.
+      </p>
+      <div class="card-grid" style="margin-bottom:40px;">
+        <div class="card">
+          <h3><span class="icon">📝</span> decisions.md</h3>
+          <p>Decisiones técnicas importantes: qué se decidió, por qué, y qué alternativas se descartaron. Evita repetir discusiones.</p>
+          <span class="path">.claude/cortex/memory/decisions.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">⚠️</span> gotchas.md</h3>
+          <p>Trampas conocidas, comportamientos inesperados y bugs no obvios con sus soluciones. El agente las revisa antes de trabajar en áreas sensibles.</p>
+          <span class="path">.claude/cortex/memory/gotchas.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🔁</span> patterns.md</h3>
+          <p>Patrones y convenciones del proyecto. El agente los respeta para mantener consistencia en el código nuevo.</p>
+          <span class="path">.claude/cortex/memory/patterns.md</span>
+        </div>
+      </div>
+
+      <!-- OPS -->
+      <h3 style="margin-bottom:12px;">⚙️ OPS — Operaciones</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:20px;">
+        Documentación operativa del proyecto. Generada por <code>cortex-init</code>.
+      </p>
+      <div class="card-grid" style="margin-bottom:40px;">
+        <div class="card">
+          <h3><span class="icon">🔐</span> environment.md</h3>
+          <p>Variables de entorno requeridas y opcionales, servicios externos, diferencias entre entornos (dev / staging / prod).</p>
+          <span class="path">.claude/cortex/ops/environment.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🛠️</span> workflows.md</h3>
+          <p>Comandos de instalación, desarrollo, test, build y deploy. Cualquier proceso manual relevante.</p>
+          <span class="path">.claude/cortex/ops/workflows.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">📖</span> onboarding.md</h3>
+          <p>Documento generado por <code>cortex-onboard</code> para que un nuevo desarrollador se ponga al día rápidamente.</p>
+          <span class="path">.claude/cortex/ops/onboarding.md</span>
+        </div>
+      </div>
+
+      <!-- STATE -->
+      <h3 style="margin-bottom:12px;">📊 STATE — Estado del proyecto</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:20px;">
+        Actualizado autónomamente. Refleja la salud y el alcance actual del proyecto.
+      </p>
+      <div class="card-grid" style="margin-bottom:40px;">
+        <div class="card">
+          <h3><span class="icon">🎯</span> scope.md</h3>
+          <p>Control de alcance de tareas. El agente registra automáticamente cuando una tarea se desvía de lo pedido y alerta al usuario.</p>
+          <span class="path">.claude/cortex/state/scope.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">💳</span> tech-debt.md</h3>
+          <p>Deuda técnica: workarounds, soluciones temporales, y el camino para resolverlas correctamente cuando se aborde.</p>
+          <span class="path">.claude/cortex/state/tech-debt.md</span>
+        </div>
+      </div>
+
+      <!-- SESSIONS -->
+      <h3 style="margin-bottom:12px;">📁 SESSIONS — Sesiones de trabajo</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:20px;">
+        Gestión completa de sesiones: crear, guardar, cargar, listar y cerrar.
+      </p>
+      <div class="card-grid">
+        <div class="card">
+          <h3><span class="icon">📋</span> index.md</h3>
+          <p>Registro central de todas las sesiones. Indica cuál está activa y muestra el historial con estado, código y fechas.</p>
+          <span class="path">.claude/cortex/sessions/index.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">📄</span> [código]/state.md</h3>
+          <p>Estado exacto de una sesión: último paso completado, archivos activos, blockers, y resumen del progreso.</p>
+          <span class="path">.claude/cortex/sessions/S001/state.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">📄</span> [código]/context.md</h3>
+          <p>Contexto detallado de la sesión: decisiones específicas, hallazgos y notas tomadas durante la sesión.</p>
+          <span class="path">.claude/cortex/sessions/S001/context.md</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- COMANDOS -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="comandos">
+    <div class="container">
+      <h2>Comandos del sistema</h2>
+      <p class="section-desc">
+        CORTEX expone comandos que pueden invocarse como <em>slash commands</em> en
+        Claude Code o mediante lenguaje natural en cualquier agente.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Comando</th>
+              <th>Claude Code</th>
+              <th>Lenguaje natural</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>cortex-init</td>
+              <td><code>/cortex-init</code></td>
+              <td>"Inicia CORTEX"</td>
+              <td>Explora el proyecto y genera el knowledge base desde cero</td>
+            </tr>
+            <tr>
+              <td>cortex-preflight</td>
+              <td><code>/cortex-preflight</code></td>
+              <td>"Preflight" / "revisión previa"</td>
+              <td>Revisa conocimiento relevante antes de empezar una tarea</td>
+            </tr>
+            <tr>
+              <td>cortex-sync</td>
+              <td><code>/cortex-sync</code></td>
+              <td>"Sincroniza CORTEX"</td>
+              <td>Re-sincroniza MAP y OPS tras cambios estructurales</td>
+            </tr>
+            <tr>
+              <td>cortex-onboard</td>
+              <td><code>/cortex-onboard</code></td>
+              <td>"Genera onboarding"</td>
+              <td>Crea guía de onboarding para nuevo desarrollador</td>
+            </tr>
+            <tr>
+              <td>cortex-session-new</td>
+              <td><code>/cortex-session-new [nombre]</code></td>
+              <td>"Nueva sesión: [nombre]"</td>
+              <td>Crea una nueva sesión de trabajo</td>
+            </tr>
+            <tr>
+              <td>cortex-session-save</td>
+              <td><code>/cortex-session-save</code></td>
+              <td>"Guarda sesión" / "pausa"</td>
+              <td>Persiste el estado exacto de la sesión activa</td>
+            </tr>
+            <tr>
+              <td>cortex-session-load</td>
+              <td><code>/cortex-session-load [código]</code></td>
+              <td>"Carga sesión [código]"</td>
+              <td>Restaura el contexto de una sesión pausada</td>
+            </tr>
+            <tr>
+              <td>cortex-session-list</td>
+              <td><code>/cortex-session-list</code></td>
+              <td>"Lista sesiones"</td>
+              <td>Muestra todas las sesiones con su estado</td>
+            </tr>
+            <tr>
+              <td>cortex-session-close</td>
+              <td><code>/cortex-session-close</code></td>
+              <td>"Cierra sesión"</td>
+              <td>Marca la sesión activa como completada</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top: 20px; color: var(--text-dim); font-size: .88rem;">
+        Los archivos en <code>.claude/commands/*.md</code> contienen las instrucciones
+        detalladas de cada comando y sirven como documentación de referencia para el agente.
+      </p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- COMPATIBILIDAD -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="compatibilidad">
+    <div class="container">
+      <h2>Compatibilidad con agentes</h2>
+      <p class="section-desc">
+        CORTEX funciona con cualquier agente de IA que lea <code>CLAUDE.md</code>.
+        El nivel de integración varía según la plataforma.
+      </p>
+
+      <div class="table-wrap">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Agente</th>
+              <th>Estado</th>
+              <th>Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Claude Code</td>
+              <td>✅ Completo</td>
+              <td>Slash commands, settings hooks, CLAUDE.md</td>
+            </tr>
+            <tr>
+              <td>OpenCode</td>
+              <td>✅ Completo</td>
+              <td>Lenguaje natural, CLAUDE.md</td>
+            </tr>
+            <tr>
+              <td>Cursor</td>
+              <td>✅ Completo</td>
+              <td>CLAUDE.md soportado</td>
+            </tr>
+            <tr>
+              <td>GitHub Copilot</td>
+              <td>⚠️ Parcial</td>
+              <td>CLAUDE.md funcional, sin slash commands</td>
+            </tr>
+            <tr>
+              <td>Cualquier agente</td>
+              <td>🟢 Básico</td>
+              <td>Lee CLAUDE.md y sigue instrucciones de ruta</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- INSTALACIÓN -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="instalacion">
+    <div class="container">
+      <h2>Instalación</h2>
+      <p class="section-desc">
+        Dos modos de instalar CORTEX en tu proyecto.
+      </p>
+
+      <h3 style="margin-bottom:12px;">🐚 Instalación rápida (recomendada)</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Ejecuta el instalador</h4>
+            <p>El script descarga CORTEX y lo instala en el directorio actual o en el que especifiques.</p>
+            <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</pre>
+            <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /ruta/a/tu-proyecto</pre>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Inicia una sesión con tu agente IA</h4>
+            <p>CORTEX se activa automáticamente al leer el <code>CLAUDE.md</code>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Genera la base de conocimiento inicial</h4>
+            <p>Opcional: ejecuta <code>cortex-init</code> para explorar el proyecto y generar el knowledge base.</p>
+            <pre>/cortex-init   # Claude Code<br>"Inicia CORTEX"  # Cualquier agente</pre>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin:32px 0 12px;">📦 Instalación manual</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Clona el repositorio</h4>
+            <pre>git clone https://github.com/MaverickLBP/cortex.git /tmp/cortex</pre>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Copia los archivos a tu proyecto</h4>
+            <pre>cp /tmp/cortex/CLAUDE.md .<br>cp -r /tmp/cortex/.claude .<br>rm -rf /tmp/cortex</pre>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin:32px 0 12px;">🔗 Solo el loader (proyecto existente)</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;">
+        Si tu proyecto ya tiene un <code>CLAUDE.md</code>, añade esta línea al inicio:
+      </p>
+      <pre style="margin-top:8px;background:var(--bg-card);border:1px solid var(--border);padding:12px 16px;border-radius:var(--radius);font-family:'SF Mono','Fira Code',monospace;">→ Carga .claude/CLAUDE.md para las instrucciones completas del sistema.</pre>
+      <p style="margin-top:12px;color:var(--text-dim);font-size:.9rem;">
+        Luego copia el directorio <code>.claude/</code> manualmente como se describe arriba.
+      </p>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- FOOTER -->
+  <!-- ════════════════════════════════════════════ -->
+  <footer>
+    <div class="container">
+      <p>
+        <strong>CORTEX</strong> — Context-Oriented Runtime Technical Experience
+      </p>
+      <p style="margin-top:4px;">
+        <a href="https://github.com/MaverickLBP/cortex">GitHub</a> ·
+        Licencia MIT con redistribución no comercial
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
