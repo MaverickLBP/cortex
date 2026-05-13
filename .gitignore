@@ -19,6 +19,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Personal assistant overrides
+.claude/settings.json
+
 # Environment
 .env
 .env.local

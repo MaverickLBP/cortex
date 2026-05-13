@@ -87,7 +87,7 @@ Cuenta las dependencias en el archivo de dependencias del proyecto y las filas e
 
 - `.claude/cortex/memory/` — El conocimiento experiencial acumulado no se regenera
 - `.claude/cortex/sessions/` — El historial de sesiones no se modifica
-- `.claude/cortex/state/` — Ni `tech-debt.md` ni `scope.md`; se gestionan autónomamente (ver §2.2 de CLAUDE.md)
+- `.claude/cortex/state/` — Ni `tech-debt.md` ni `scope.md`; se gestionan autónomamente (ver §2.2 de SYSTEM.md)
 
 ---
 

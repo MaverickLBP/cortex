@@ -12,17 +12,19 @@ When you work, CORTEX silently learns. When you return, CORTEX remembers.
 
 ```
 your-project/
-├── CLAUDE.md              ← "This project uses CORTEX → .claude/CLAUDE.md"
+├── CLAUDE.md              ← "This project uses CORTEX — see .claude/"
 └── .claude/               ← CORTEX system
-    ├── CLAUDE.md          ← Full system instructions (loaded by agent)
-    ├── settings.json      ← Claude Code hooks
-    ├── commands/          ← Slash commands (/cortex-init, etc.)
-    └── cortex/            ← Persistent knowledge base
+    ├── CLAUDE.md          ← System loader (reads cortex/SYSTEM.md)
+    ├── settings.json      ← Personal agent overrides (gitignored)
+    ├── commands/          ← Slash commands (/cortex-init, /cortex-preflight, etc.)
+    └── cortex/            ← Everything CORTEX is here
+        ├── SYSTEM.md      ← Full system instructions (how the agent behaves)
+        ├── governance/    ← Team protocols and conventions
         ├── map/           ← Architecture, dependencies
         ├── memory/        ← Decisions, gotchas, patterns
         ├── ops/           ← Environment, workflows, onboarding
         ├── state/         ← Scope, tech debt
-        └── sessions/      ← Session state and context
+        └── sessions/      ← Session state and context (gitignored per-user)
 ```
 
 CORTEX provides:
@@ -31,8 +33,9 @@ CORTEX provides:
 |------------|-------------|
 | **🧠 Persistent memory** | Decisions, gotchas, and patterns survive across sessions |
 | **⚡ Autonomous logging** | The agent records technical decisions without being asked |
-| **🔍 Preflight checks** | Before starting a task, CORTEX checks for relevant context |
+| **🔍 Preflight checks** | Before starting a task, CORTEX checks for relevant remote changes and context |
 | **📋 Session management** | Save, load, and close work sessions with full context |
+| **👥 Team governance** | Protocols for commits, conflict resolution, and duplicate prevention across team members |
 | **🌐 Agent-agnostic** | Works with Claude Code, OpenCode, Cursor, and any AI coding agent |
 | **🔌 Slash commands** | Claude Code: `/cortex-init`, `/cortex-preflight`, `/cortex-session-new`, etc. |
 
@@ -61,12 +64,13 @@ cp -r /tmp/cortex/.claude .
 rm -rf /tmp/cortex
 ```
 
-### Just the loader (if your project already has a CLAUDE.md)
+### Add to existing project (if your project already has a CLAUDE.md)
 
-Add this line at the top of your existing `CLAUDE.md`:
+Add these lines to your existing `CLAUDE.md`:
 
 ```markdown
-→ Load `.claude/CLAUDE.md` for the complete CORTEX system instructions.
+Este proyecto utiliza CORTEX para memoria persistente.
+→ Carga `.claude/CLAUDE.md` para las instrucciones completas del sistema.
 ```
 
 Then copy `.claude/` manually as described above.

@@ -304,20 +304,20 @@
     <div class="container">
       <h2>Estructura del sistema</h2>
       <p class="section-desc">
-        CORTEX se organiza en cinco dominios — MAP, MEMORY, OPS, STATE y SESSIONS —
+        CORTEX se organiza en seis dominios — MAP, MEMORY, OPS, STATE, GOVERNANCE y SESSIONS —
         más la capa de comandos y configuración.
       </p>
 
       <div class="tree">
         <strong>tu-proyecto/</strong>
         <br>├── <span class="highlight">CLAUDE.md</span>
-        <span class="comment">← Carga CORTEX vía .claude/CLAUDE.md</span>
+        <span class="comment">← Anclaje CORTEX — redirige a .claude/</span>
         <br>└── <span class="branch">.claude/</span>
-        <span class="comment">← Sistema CORTEX</span>
+        <span class="comment">← Sistema CORTEX completo</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="highlight">CLAUDE.md</span>
-        <span class="comment">← Instrucciones completas del sistema</span>
+        <span class="comment">← Loader del sistema (lee cortex/SYSTEM.md)</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="leaf">settings.json</span>
-        <span class="comment">← Hooks de Claude Code</span>
+        <span class="comment">← Configuración personal (gitignored)</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">commands/</span>
         <span class="comment">← Slash commands</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-init.md</span>
@@ -327,7 +327,11 @@
         <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; ├── <span class="leaf">cortex-session-*.md</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; └── <span class="leaf">...</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="branch">cortex/</span>
-        <span class="comment">← Base de conocimiento persistente</span>
+        <span class="comment">← Todo CORTEX está aquí</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="highlight">SYSTEM.md</span>
+        <span class="comment">← Instrucciones completas del sistema</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">governance/</span>
+        <span class="comment">← Protocolos de equipo</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">map/</span>
         <span class="comment">← Arquitectura y dependencias</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">memory/</span>
@@ -337,7 +341,7 @@
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">state/</span>
         <span class="comment">← Scope y deuda técnica</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="branch">sessions/</span>
-        <span class="comment">← Estado y contexto de sesiones</span>
+        <span class="comment">← Estado y contexto de sesiones (gitignored)</span>
       </div>
     </div>
   </section>
@@ -432,6 +436,19 @@
           <h3><span class="icon">💳</span> tech-debt.md</h3>
           <p>Deuda técnica: workarounds, soluciones temporales, y el camino para resolverlas correctamente cuando se aborde.</p>
           <span class="path">.claude/cortex/state/tech-debt.md</span>
+        </div>
+      </div>
+
+      <!-- GOVERNANCE -->
+      <h3 style="margin-bottom:12px;">👥 GOVERNANCE — Protocolos de equipo</h3>
+      <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:20px;">
+        Acuerdos formales del equipo para trabajar con CORTEX en repositorios compartidos.
+      </p>
+      <div class="card-grid" style="margin-bottom:40px;">
+        <div class="card">
+          <h3><span class="icon">📜</span> team.md</h3>
+          <p>Protocolos de commit, verificación pre y post tarea, resolución de conflictos y evolución del sistema CORTEX en equipo.</p>
+          <span class="path">.claude/cortex/governance/team.md</span>
         </div>
       </div>
 
@@ -655,11 +672,12 @@
         </div>
       </div>
 
-      <h3 style="margin:32px 0 12px;">🔗 Solo el loader (proyecto existente)</h3>
+      <h3 style="margin:32px 0 12px;">🔗 Añadir a proyecto existente</h3>
       <p style="color:var(--text-dim);font-size:.9rem;">
-        Si tu proyecto ya tiene un <code>CLAUDE.md</code>, añade esta línea al inicio:
+        Si tu proyecto ya tiene un <code>CLAUDE.md</code>, añade estas líneas:
       </p>
-      <pre style="margin-top:8px;background:var(--bg-card);border:1px solid var(--border);padding:12px 16px;border-radius:var(--radius);font-family:'SF Mono','Fira Code',monospace;">→ Carga .claude/CLAUDE.md para las instrucciones completas del sistema.</pre>
+      <pre style="margin-top:8px;background:var(--bg-card);border:1px solid var(--border);padding:12px 16px;border-radius:var(--radius);font-family:'SF Mono','Fira Code',monospace;">Este proyecto utiliza CORTEX para memoria persistente.
+→ Carga .claude/CLAUDE.md para las instrucciones completas del sistema.</pre>
       <p style="margin-top:12px;color:var(--text-dim);font-size:.9rem;">
         Luego copia el directorio <code>.claude/</code> manualmente como se describe arriba.
       </p>

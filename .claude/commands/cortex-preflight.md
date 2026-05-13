@@ -6,6 +6,12 @@ Puede invocarse como `/cortex-preflight` en Claude Code, o por lenguaje natural 
 
 ## Pasos
 
+0. **Verificación de frescura remota** — Antes de nada, comprueba que el conocimiento local está al día:
+   - Ejecuta `git fetch origin` para obtener referencias remotas
+   - Ejecuta `git log --oneline HEAD..origin/main -- .claude/` para detectar cambios en CORTEX remotos no integrados
+   - Si hay cambios: **ADVIERTE al usuario** con el listado de commits que faltan por integrar
+   - Si no hay cambios: silencioso, continúa
+
 1. **Gotchas relevantes** — Revisa `.claude/cortex/memory/gotchas.md`
    ¿Hay trampas conocidas en el área donde se va a trabajar o en las dependencias involucradas? Si las hay, adviértelas antes de empezar.
 
