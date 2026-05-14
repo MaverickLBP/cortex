@@ -16,13 +16,13 @@ project/
 ## Installation
 
 ```bash
-curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash
 ```
 
 In a specific directory:
 
 ```bash
-curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash -s -- /path/to/project
+curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/project
 ```
 
 ## Usage

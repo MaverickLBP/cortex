@@ -6,8 +6,8 @@ set -euo pipefail
 # Installer
 #
 # Usage:
-#   curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash
-#   curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash -s -- /path/to/project
+#   curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/project
 # ──────────────────────────────────────────────
 
 REPO_URL="https://github.com/MaverickLBP/cortex.git"
