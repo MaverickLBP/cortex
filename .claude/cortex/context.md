@@ -1,38 +1,38 @@
-# Contexto del Proyecto
+# Project Context
 
-> Edita este archivo para mantener el contexto del proyecto actualizado.
-> El asistente lo carga automáticamente al iniciar sesión.
-> Si una sección no aplica, déjala con su contenido por defecto.
+> Edit this file to keep the project context up to date.
+> The assistant loads it automatically when starting a session.
+> If a section does not apply, leave it with its default content.
 
 ---
 
-## Stack tecnológico
+## Tech stack
 
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
+| Technology | Version | Purpose |
+|------------|---------|---------|
 | — | — | — |
 
-*Incluye lenguaje, framework, base de datos, testing, CI/CD, herramientas de build, etc.*
+*Include language, framework, database, testing, CI/CD, build tools, etc.*
 
 ---
 
-## Estructura del proyecto
+## Project structure
 
 ```
 /
 ```
 
-*Árbol de directorios. Cada entrada debe tener una línea de descripción breve.*
+*Directory tree. Each entry should have a brief description line.*
 
 ---
 
-## Convenciones
+## Conventions
 
-*Naming, organización de archivos, patrones de código, reglas de imports, estilo, etc.*
+*Naming, file organisation, code patterns, import rules, style, etc.*
 
 ---
 
-## Comandos
+## Commands
 
 ```bash
 # dev:
@@ -40,13 +40,13 @@
 # build:
 # lint:
 # deploy:
-# otros:
+# other:
 ```
 
-*Comandos exactos, no descripciones genéricas.*
+*Exact commands, not generic descriptions.*
 
 ---
 
-## Notas
+## Notes
 
-*Decisiones técnicas, gotchas, deuda, observaciones. Cada entrada con fecha.*
+*Technical decisions, gotchas, tech debt, observations. Each entry dated.*

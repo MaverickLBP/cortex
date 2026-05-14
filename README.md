@@ -1,40 +1,40 @@
 # CORTEX — Context-Oriented Runtime Technical Experience
 
-**Contexto persistente del proyecto para asistentes de código con IA.**
+**Persistent project context for AI coding assistants.**
 
-CORTEX es un sistema mínimo que le dice al agente qué tecnologías usa tu proyecto, cómo está estructurado, qué comandos ejecutar y qué decisiones se han tomado. Un solo archivo de contexto que el agente carga al iniciar la sesión.
+CORTEX is a minimal system that tells the agent what technologies your project uses, how it is structured, what commands to run, and what decisions have been made. A single context file loaded by the agent at session start.
 
 ```
-proyecto/
-├── CLAUDE.md              ← "Este proyecto usa CORTEX"
+project/
+├── CLAUDE.md              ← "This project uses CORTEX"
 └── .claude/
-    └── cortex/             ← Todo CORTEX está aquí
-        ├── SYSTEM.md       ← Instrucciones al agente (no tocar)
-        └── context.md      ← Datos del proyecto (editar)
+    └── cortex/             ← Everything CORTEX lives here
+        ├── SYSTEM.md       ← Agent instructions (do not edit)
+        └── context.md      ← Project data (edit this)
 ```
 
-## Instalación
+## Installation
 
 ```bash
 curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash
 ```
 
-En un directorio específico:
+In a specific directory:
 
 ```bash
-curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash -s -- /ruta/al/proyecto
+curl -sSL https://github.com/MaverickLBP/cortex/raw/main/install.sh | bash -s -- /path/to/project
 ```
 
-## Uso
+## Usage
 
-1. Edita `.claude/cortex/context.md` con la información de tu proyecto
-2. El agente carga automáticamente el contexto al iniciar sesión
-3. Cuando el proyecto cambie, actualiza `context.md`
+1. Edit `.claude/cortex/context.md` with your project's information
+2. The agent automatically loads the context when starting a session
+3. When the project changes, update `context.md`
 
-## Compatibilidad
+## Compatibility
 
-Funciona con Claude Code, OpenCode, Cursor, GitHub Copilot y cualquier agente que lea `CLAUDE.md`. CORTEX es un subdirectorio más en `.claude/` — compatible con otros sistemas que usen el mismo espacio.
+Works with Claude Code, OpenCode, Cursor, GitHub Copilot, and any agent that reads `CLAUDE.md`. CORTEX is one more subdirectory in `.claude/` — compatible with other systems sharing the same space.
 
-## Licencia
+## License
 
-MIT — ver [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE).

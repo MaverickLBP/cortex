@@ -1,4 +1,4 @@
 # CORTEX — Context-Oriented Runtime Technical Experience
 
-Este proyecto utiliza **CORTEX** para contexto persistente del proyecto.
-→ Carga `.claude/cortex/SYSTEM.md` para las instrucciones completas del sistema.
+This project uses **CORTEX** for persistent project context.
+→ Load `.claude/cortex/SYSTEM.md` for complete system instructions.

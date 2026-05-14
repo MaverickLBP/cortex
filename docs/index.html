@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -213,11 +213,11 @@
     <div class="container">
       <div class="logo">⟐ <span>CORTEX</span></div>
       <ul>
-        <li><a href="#que-es">¿Qué es?</a></li>
-        <li><a href="#estructura">Estructura</a></li>
-        <li><a href="#como-funciona">Cómo funciona</a></li>
-        <li><a href="#compatibilidad">Compatibilidad</a></li>
-        <li><a href="#instalacion">Instalación</a></li>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#structure">Structure</a></li>
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#compatibility">Compatibility</a></li>
+        <li><a href="#installation">Installation</a></li>
       </ul>
     </div>
   </nav>
@@ -229,59 +229,59 @@
     <div class="container">
       <h1>Context-Oriented Runtime<br>Technical Experience</h1>
       <p class="subtitle">
-        Un archivo de contexto. Lo carga tu agente al iniciar sesión.
-        Stack, estructura, comandos y notas del proyecto — todo lo que tu agente
-        necesita saber para no empezar de cero cada vez.
+        A single context file. Loaded by your agent at session start.
+        Stack, structure, commands, and project notes — everything your agent
+        needs to know so it never starts from scratch.
       </p>
       <div class="tagline">
-        <span>📄 Un solo archivo</span>
+        <span>📄 Single file</span>
         <span>🚀 Portable</span>
-        <span>🔌 Agnóstico de agente</span>
-        <span>🤝 Compatible con otros sistemas</span>
+        <span>🔌 Agent-agnostic</span>
+        <span>🤝 Plays nice with others</span>
       </div>
     </div>
   </header>
 
   <!-- ════════════════════════════════════════════ -->
-  <!-- ¿QUÉ ES? -->
+  <!-- OVERVIEW -->
   <!-- ════════════════════════════════════════════ -->
-  <section id="que-es">
+  <section id="overview">
     <div class="container">
-      <h2>¿Qué es CORTEX?</h2>
+      <h2>What is CORTEX?</h2>
       <p class="section-desc">
-        CORTEX es un sistema mínimo de contexto persistente para asistentes de código con IA.
-        Vive dentro del directorio <code>.claude/</code> de tu proyecto y le dice al agente
-        qué tecnologías usas, cómo está organizado el código, qué comandos ejecutar
-        y qué decisiones se han tomado.
+        CORTEX is a minimal persistent context system for AI coding assistants.
+        It lives inside your project's <code>.claude/</code> directory and tells the agent
+        what technologies you use, how the code is organised, what commands to run,
+        and what decisions have been made.
       </p>
 
       <div class="card-grid" style="margin-top:8px;">
         <div class="card">
-          <h3><span class="icon">📄</span> Un solo archivo de contexto</h3>
+          <h3><span class="icon">📄</span> Single context file</h3>
           <p>
-            Stack, estructura, convenciones, comandos y notas — todo en <code>context.md</code>.
-            El agente lo lee una vez y tiene el mapa completo del proyecto.
+            Stack, structure, conventions, commands, and notes — all in <code>context.md</code>.
+            The agent reads it once and has the full project map.
           </p>
         </div>
         <div class="card">
-          <h3><span class="icon">🧠</span> Memoria que perdura</h3>
+          <h3><span class="icon">🧠</span> Memory that persists</h3>
           <p>
-            Decisiones técnicas, gotchas y patrones documentados en el mismo archivo.
-            Cuando vuelves al proyecto, tu agente recuerda lo que aprendió.
+            Technical decisions, gotchas, and patterns documented in the same file.
+            When you come back to the project, your agent remembers what it learned.
           </p>
         </div>
         <div class="card">
-          <h3><span class="icon">📦</span> Encapsulado y portable</h3>
+          <h3><span class="icon">📦</span> Self-contained & portable</h3>
           <p>
-            Todo el sistema vive en <code>.claude/cortex/</code>. Se instala con un
-            <code>curl | bash</code> en cualquier proyecto. No contamina el resto del repositorio.
+            The entire system lives in <code>.claude/cortex/</code>. Install it with a single
+            <code>curl | bash</code> in any project. It does not clutter the rest of your repo.
           </p>
         </div>
         <div class="card">
-          <h3><span class="icon">🤝</span> Compatible con otros sistemas</h3>
+          <h3><span class="icon">🤝</span> Plays nice with other systems</h3>
           <p>
-            CORTES es un subdirectorio más en <code>.claude/</code>. Puede coexistir con
-            otros sistemas de configuración de agente sin interferencias.
+            CORTEX is just another subdirectory in <code>.claude/</code>. It can coexist with
+            other agent configuration systems without interference.
           </p>
         </div>
       </div>
@@ -289,42 +289,42 @@
   </section>
 
   <!-- ════════════════════════════════════════════ -->
-  <!-- ESTRUCTURA -->
+  <!-- STRUCTURE -->
   <!-- ════════════════════════════════════════════ -->
-  <section id="estructura">
+  <section id="structure">
     <div class="container">
-      <h2>Estructura del sistema</h2>
+      <h2>System structure</h2>
       <p class="section-desc">
-        CORTEX v2 tiene exactamente tres archivos. Nada más.
+        CORTEX v2 has exactly three files. Nothing else.
       </p>
 
       <div class="tree">
-        <strong>tu-proyecto/</strong>
+        <strong>your-project/</strong>
         <br>├── <span class="highlight">CLAUDE.md</span>
-        <span class="comment">← "Este proyecto usa CORTEX — carga .claude/cortex/SYSTEM.md"</span>
+        <span class="comment">← "This project uses CORTEX — load .claude/cortex/SYSTEM.md"</span>
         <br>└── <span class="branch">.claude/</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="branch">cortex/</span>
-        <span class="comment">← Todo CORTEX está aquí</span>
+        <span class="comment">← Everything CORTEX lives here</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="highlight">SYSTEM.md</span>
-        <span class="comment">← Instrucciones al agente (no editar)</span>
+        <span class="comment">← Agent behaviour instructions (do not edit)</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="leaf">context.md</span>
-        <span class="comment">← Datos del proyecto (editar)</span>
+        <span class="comment">← Project data (edit this)</span>
       </div>
 
       <div class="card-grid" style="margin-top:24px;">
         <div class="card">
           <h3><span class="icon">📋</span> CLAUDE.md</h3>
-          <p>Una línea que referencia a CORTEX. Si el proyecto ya tiene un CLAUDE.md con otras configuraciones, solo se añade esta línea.</p>
+          <p>A single line referencing CORTEX. If the project already has a CLAUDE.md with other configurations, this line is simply appended.</p>
           <span class="path">/CLAUDE.md</span>
         </div>
         <div class="card">
           <h3><span class="icon">⚙️</span> SYSTEM.md</h3>
-          <p>Instrucciones de comportamiento para el agente. Le indica que cargue context.md, cómo usar la información, y cómo mantenerla actualizada.</p>
+          <p>Behaviour instructions for the agent. Tells it to load context.md, how to use the information, and how to keep it updated.</p>
           <span class="path">.claude/cortex/SYSTEM.md</span>
         </div>
         <div class="card">
           <h3><span class="icon">📄</span> context.md</h3>
-          <p>El corazón del sistema. Contiene el stack, estructura del proyecto, convenciones, comandos y notas con decisiones y gotchas.</p>
+          <p>The heart of the system. Contains the tech stack, project structure, conventions, commands, and notes with decisions and gotchas.</p>
           <span class="path">.claude/cortex/context.md</span>
         </div>
       </div>
@@ -332,63 +332,63 @@
   </section>
 
   <!-- ════════════════════════════════════════════ -->
-  <!-- CÓMO FUNCIONA -->
+  <!-- HOW IT WORKS -->
   <!-- ════════════════════════════════════════════ -->
-  <section id="como-funciona">
+  <section id="how-it-works">
     <div class="container">
-      <h2>Cómo funciona</h2>
+      <h2>How it works</h2>
       <p class="section-desc">
-        El ciclo es simple: el agente lee, usa y mantiene el contexto.
+        The cycle is simple: the agent reads, uses, and maintains the context.
       </p>
 
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <h4>El agente inicia sesión</h4>
-            <p>Lee <code>CLAUDE.md</code>, encuentra la referencia a CORTEX, y carga <code>.claude/cortex/SYSTEM.md</code>.</p>
+            <h4>Agent starts a session</h4>
+            <p>It reads <code>CLAUDE.md</code>, finds the CORTEX reference, and loads <code>.claude/cortex/SYSTEM.md</code>.</p>
           </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <h4>Carga el contexto del proyecto</h4>
-            <p>Sigue la instrucción de SYSTEM.md y lee <code>context.md</code>. En ese momento conoce el stack, la estructura, las convenciones y los comandos del proyecto.</p>
+            <h4>Loads project context</h4>
+            <p>Follows SYSTEM.md's instruction and reads <code>context.md</code>. It now knows the stack, structure, conventions, and commands of the project.</p>
           </div>
         </div>
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-body">
-            <h4>Trabaja con conocimiento</h4>
-            <p>Usa la estructura para localizar archivos sin exploraciones innecesarias. Usa los comandos exactos para build, test y dev. Respeta las convenciones y consulta las notas antes de actuar en áreas sensibles.</p>
+            <h4>Works with knowledge</h4>
+            <p>Uses the structure to locate files without unnecessary exploration. Uses exact commands for build, test, and dev. Respects conventions and checks notes before acting on sensitive areas.</p>
           </div>
         </div>
         <div class="step">
           <div class="step-num">4</div>
           <div class="step-body">
-            <h4>Mantiene el contexto actualizado</h4>
-            <p>Si descubre un gotcha, toma una decisión técnica, o detecta que el contexto está desactualizado, actualiza <code>context.md</code> en silencio. El conocimiento se acumula con cada sesión.</p>
+            <h4>Keeps context updated</h4>
+            <p>If it discovers a gotcha, makes a technical decision, or detects outdated context, it updates <code>context.md</code> silently. Knowledge accumulates with every session.</p>
           </div>
         </div>
       </div>
 
       <div class="card-grid" style="margin-top:32px;">
         <div class="card">
-          <h3><span class="icon">📝</span> context.md — secciones</h3>
+          <h3><span class="icon">📝</span> context.md sections</h3>
           <ul style="margin-top:10px;padding-left:18px;font-size:.85rem;color:var(--text-dim);">
-            <li><strong>Stack</strong> — tecnologías, versiones y propósito</li>
-            <li><strong>Estructura</strong> — árbol de directorios con descripciones</li>
-            <li><strong>Convenciones</strong> — naming, patrones, reglas de código</li>
-            <li><strong>Comandos</strong> — scripts exactos para tareas comunes</li>
-            <li><strong>Notas</strong> — decisiones, gotchas y observaciones con fecha</li>
+            <li><strong>Tech stack</strong> — technologies, versions, and purpose</li>
+            <li><strong>Project structure</strong> — directory tree with descriptions</li>
+            <li><strong>Conventions</strong> — naming, patterns, code rules</li>
+            <li><strong>Commands</strong> — exact scripts for common tasks</li>
+            <li><strong>Notes</strong> — decisions, gotchas, and dated observations</li>
           </ul>
         </div>
         <div class="card">
-          <h3><span class="icon">🔒</span> SYSTEM.md no se toca</h3>
+          <h3><span class="icon">🔒</span> SYSTEM.md is off-limits</h3>
           <p>
-            El archivo de instrucciones del agente está protegido por convención.
-            Si necesitas cambiar el contexto del proyecto, editas <code>context.md</code>.
-            Si necesitas cambiar el comportamiento del agente, usas <code>.claude/settings.json</code>.
+            The agent instruction file is protected by convention.
+            To change project context, edit <code>context.md</code>.
+            To change agent behaviour, use <code>.claude/settings.json</code>.
           </p>
         </div>
       </div>
@@ -396,114 +396,114 @@
   </section>
 
   <!-- ════════════════════════════════════════════ -->
-  <!-- COMPATIBILIDAD -->
+  <!-- COMPATIBILITY -->
   <!-- ════════════════════════════════════════════ -->
-  <section id="compatibilidad">
+  <section id="compatibility">
     <div class="container">
-      <h2>Compatibilidad con agentes</h2>
+      <h2>Agent compatibility</h2>
       <p class="section-desc">
-        CORTEX funciona con cualquier agente de IA que lea <code>CLAUDE.md</code>.
-        El nivel de integración varía según la plataforma.
+        CORTEX works with any AI agent that reads <code>CLAUDE.md</code>.
+        Integration level varies by platform.
       </p>
 
       <div class="table-wrap">
         <table class="comp-table">
           <thead>
             <tr>
-              <th>Agente</th>
-              <th>Estado</th>
-              <th>Notas</th>
+              <th>Agent</th>
+              <th>Status</th>
+              <th>Notes</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>Claude Code</td>
-              <td>✅ Completo</td>
-              <td>CLAUDE.md + encadenamiento de instrucciones</td>
+              <td>✅ Full</td>
+              <td>CLAUDE.md + instruction chaining</td>
             </tr>
             <tr>
               <td>OpenCode</td>
-              <td>✅ Completo</td>
-              <td>CLAUDE.md + encadenamiento de instrucciones</td>
+              <td>✅ Full</td>
+              <td>CLAUDE.md + instruction chaining</td>
             </tr>
             <tr>
               <td>Cursor</td>
-              <td>✅ Completo</td>
-              <td>CLAUDE.md soportado</td>
+              <td>✅ Full</td>
+              <td>CLAUDE.md supported</td>
             </tr>
             <tr>
               <td>GitHub Copilot</td>
-              <td>✅ Completo</td>
-              <td>CLAUDE.md funcional</td>
+              <td>✅ Full</td>
+              <td>CLAUDE.md supported</td>
             </tr>
             <tr>
-              <td>Cualquier agente</td>
-              <td>✅ Completo</td>
-              <td>Solo necesita leer CLAUDE.md y seguir rutas</td>
+              <td>Any agent</td>
+              <td>✅ Full</td>
+              <td>Only needs to read CLAUDE.md and follow paths</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p style="margin-top: 24px; color: var(--text-dim); font-size: .88rem;">
-        CORTEX no depende de slash commands ni de ninguna característica específica de plataforma.
-        Es solo un archivo <code>CLAUDE.md</code> que referencia a otro archivo. Cualquier agente
-        que pueda leer instrucciones de un archivo de texto puede usar CORTEX.
+        CORTEX does not depend on slash commands or any platform-specific feature.
+        It is just a <code>CLAUDE.md</code> file referencing another file. Any agent
+        that can read instructions from a text file can use CORTEX.
       </p>
     </div>
   </section>
 
   <!-- ════════════════════════════════════════════ -->
-  <!-- INSTALACIÓN -->
+  <!-- INSTALLATION -->
   <!-- ════════════════════════════════════════════ -->
-  <section id="instalacion">
+  <section id="installation">
     <div class="container">
-      <h2>Instalación</h2>
+      <h2>Installation</h2>
       <p class="section-desc">
-        Un solo comando. No requiere npm, gem, pip, ni nada.
+        A single command. No npm, gem, pip, or anything required.
       </p>
 
-      <h3 style="margin-bottom:12px;">🚀 Instalación rápida (recomendada)</h3>
+      <h3 style="margin-bottom:12px;">🚀 Quick install (recommended)</h3>
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <h4>Ejecuta el instalador</h4>
-            <p>El script descarga CORTEX, crea <code>.claude/cortex/</code> y configura el <code>CLAUDE.md</code>.</p>
+            <h4>Run the installer</h4>
+            <p>The script downloads CORTEX, creates <code>.claude/cortex/</code>, and sets up the <code>CLAUDE.md</code>.</p>
             <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</pre>
-            <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /ruta/a/tu-proyecto</pre>
+            <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/project</pre>
           </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <h4>Describe tu proyecto</h4>
-            <p>Edita <code>.claude/cortex/context.md</code> con el stack, estructura, convenciones y comandos de tu proyecto. Es un archivo Markdown plano.</p>
+            <h4>Describe your project</h4>
+            <p>Edit <code>.claude/cortex/context.md</code> with your project's stack, structure, conventions, and commands. It is plain Markdown.</p>
           </div>
         </div>
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-body">
-            <h4>Empieza a trabajar</h4>
-            <p>Tu agente cargará automáticamente el contexto al iniciar sesión. El conocimiento se acumula con cada sesión.</p>
+            <h4>Start working</h4>
+            <p>Your agent will automatically load the context when starting a session. Knowledge accumulates with every session.</p>
           </div>
         </div>
       </div>
 
-      <h3 style="margin:32px 0 12px;">📦 Instalación manual</h3>
+      <h3 style="margin:32px 0 12px;">📦 Manual installation</h3>
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-body">
-            <h4>Clona el repositorio</h4>
+            <h4>Clone the repository</h4>
             <pre>git clone https://github.com/MaverickLBP/cortex.git /tmp/cortex</pre>
           </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <h4>Copia el sistema a tu proyecto</h4>
-            <pre>mkdir -p tu-proyecto/.claude/cortex<br>cp /tmp/cortex/.claude/cortex/* tu-proyecto/.claude/cortex/<br>echo "→ Carga .claude/cortex/SYSTEM.md" >> tu-proyecto/CLAUDE.md</pre>
+            <h4>Copy the system into your project</h4>
+            <pre>mkdir -p your-project/.claude/cortex<br>cp /tmp/cortex/.claude/cortex/* your-project/.claude/cortex/<br>echo "→ Load .claude/cortex/SYSTEM.md for complete system instructions." >> your-project/CLAUDE.md</pre>
           </div>
         </div>
       </div>
@@ -520,7 +520,7 @@
       </p>
       <p style="margin-top:4px;">
         <a href="https://github.com/MaverickLBP/cortex">GitHub</a> ·
-        Licencia MIT con redistribución no comercial
+        MIT License with non-commercial redistribution
       </p>
     </div>
   </footer>

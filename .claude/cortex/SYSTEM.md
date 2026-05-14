@@ -1,44 +1,44 @@
 # CORTEX — System Instructions
 
-> Archivo de sistema. **No modificar manualmente.**
-> Si necesitas cambiar el contexto del proyecto, edita `context.md`.
-> Versión: 2.0.0
+> System file. **Do not modify manually.**
+> To change project context, edit `context.md`.
+> Version: 2.0.0
 
 ---
 
-## 1. Carga de contexto
+## 1. Context loading
 
-Al iniciar la sesión, el asistente DEBE cargar `.claude/cortex/context.md` y usar su contenido como referencia del proyecto. Este archivo contiene el stack tecnológico, estructura de directorios, convenciones, comandos y notas del proyecto.
+When starting a session, the assistant MUST load `.claude/cortex/context.md` and use its contents as the project reference. This file contains the tech stack, directory structure, conventions, commands, and project notes.
 
-## 2. Uso del contexto
+## 2. Using the context
 
-- **Stack:** usa las tecnologías listadas. No propongas añadir dependencias que ya están cubiertas por el stack existente.
-- **Estructura:** ubica los archivos según el mapa de directorios antes de explorar con herramientas de búsqueda. Esto evita lecturas innecesarias del sistema de archivos.
-- **Convenciones:** el código nuevo debe seguir los patrones y reglas documentadas.
-- **Comandos:** usa los comandos exactos para tareas comunes (dev, test, build, lint, etc.). No improvises flags o rutas.
-- **Notas:** consulta esta sección antes de trabajar en áreas con gotchas o decisiones documentadas.
+- **Stack:** use the listed technologies. Do not propose dependencies already covered by the existing stack.
+- **Structure:** locate files using the directory map before resorting to filesystem search tools. This avoids unnecessary disk reads.
+- **Conventions:** new code must follow documented patterns and rules.
+- **Commands:** use the exact commands for common tasks (dev, test, build, lint, etc.). Do not improvise flags or paths.
+- **Notes:** consult this section before working in areas with documented gotchas or decisions.
 
-## 3. Mantenimiento del contexto
+## 3. Context maintenance
 
-El asistente DEBE mantener `context.md` actualizado de forma autónoma:
+The assistant MUST keep `context.md` updated autonomously:
 
-| Situación | Acción |
+| Situation | Action |
 |-----------|--------|
-| El stack, estructura o comandos no reflejan la realidad del proyecto | Actualizar la sección correspondiente |
-| Se descubre un gotcha, trampa o comportamiento no documentado | Añadir entrada en **Notas** con fecha |
-| Se toma una decisión técnica no obvia (arquitectura, librería, approach) | Añadir entrada en **Notas** con fecha, motivo y alternativas descartadas |
-| Se detecta un patrón recurrente en 2+ lugares del código | Documentarlo en **Convenciones** |
+| Stack, structure or commands no longer reflect the project reality | Update the corresponding section |
+| An undocumented gotcha, trap or unexpected behavior is discovered | Add a dated entry in **Notes** |
+| A non-obvious technical decision is made (architecture, library, approach) | Add a dated entry in **Notes** with rationale and discarded alternatives |
+| A recurring pattern is detected in 2+ places in the codebase | Document it in **Conventions** |
 
-No es necesario anunciar estas actualizaciones. El asistente las realiza en silencio como parte de su operación normal.
+These updates need not be announced. The assistant performs them silently as part of normal operation.
 
-## 4. Compatibilidad con otros sistemas
+## 4. Compatibility with other systems
 
-CORTEX vive exclusivamente en `.claude/cortex/`. Otros sistemas pueden coexistir en `.claude/` sin interferencias. Cada sistema tiene su propio `SYSTEM.md` que el asistente cargará según las referencias del `CLAUDE.md` raíz.
+CORTEX lives exclusively in `.claude/cortex/`. Other systems may coexist in `.claude/` without interference. Each system has its own `SYSTEM.md` which the assistant loads according to the root `CLAUDE.md` references.
 
-## 5. Estructura del sistema
+## 5. System structure
 
 ```
 .claude/cortex/
-├── SYSTEM.md       ← Este archivo. Instrucciones de comportamiento.
-└── context.md      ← Datos del proyecto. Único archivo editable.
+├── SYSTEM.md       ← This file. Behaviour instructions.
+└── context.md      ← Project data. The only editable file.
 ```
