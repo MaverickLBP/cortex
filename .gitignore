@@ -1,13 +1,5 @@
-# CORTEX — project files to ignore
-
-# Session data (user-specific, not for distribution)
-.claude/cortex/sessions/*/state.md
-.claude/cortex/sessions/*/context.md
-
-# But keep the example session template in the repo
-!.claude/cortex/sessions/S001-ejemplo/state.md
-!.claude/cortex/sessions/S001-ejemplo/context.md
-
+# Personal agent overrides
+.claude/settings.json
 
 # OS files
 .DS_Store
@@ -18,9 +10,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
-# Personal assistant overrides
-.claude/settings.json
 
 # Environment
 .env
