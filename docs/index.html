@@ -295,7 +295,7 @@
     <div class="container">
       <h2>System structure</h2>
       <p class="section-desc">
-        CORTEX v2 has exactly three files. Nothing else.
+        CORTEX v2 has exactly four files. Nothing else.
       </p>
 
       <div class="tree">
@@ -303,6 +303,9 @@
         <br>├── <span class="highlight">CLAUDE.md</span>
         <span class="comment">← "This project uses CORTEX — load .claude/cortex/SYSTEM.md"</span>
         <br>└── <span class="branch">.claude/</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="branch">commands/</span>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp; └── <span class="leaf">cortex-init.md</span>
+        <span class="comment">← Project scanner (one-time setup, optional)</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="branch">cortex/</span>
         <span class="comment">← Everything CORTEX lives here</span>
         <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="highlight">SYSTEM.md</span>
@@ -326,6 +329,11 @@
           <h3><span class="icon">📄</span> context.md</h3>
           <p>The heart of the system. Contains the tech stack, project structure, conventions, commands, and notes with decisions and gotchas.</p>
           <span class="path">.claude/cortex/context.md</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🚀</span> cortex-init (command)</h3>
+          <p>Optional command that scans the project and generates context.md automatically. One-time use on first setup.</p>
+          <span class="path">.claude/commands/cortex-init.md</span>
         </div>
       </div>
     </div>
@@ -469,7 +477,7 @@
           <div class="step-num">1</div>
           <div class="step-body">
             <h4>Run the installer</h4>
-            <p>The script downloads CORTEX, creates <code>.claude/cortex/</code>, and sets up the <code>CLAUDE.md</code>.</p>
+            <p>The script downloads CORTEX, creates <code>.claude/cortex/</code> and <code>.claude/commands/</code>, and sets up the <code>CLAUDE.md</code>.</p>
             <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</pre>
             <pre>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/project</pre>
           </div>

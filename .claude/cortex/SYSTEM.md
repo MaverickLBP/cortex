@@ -46,7 +46,10 @@ Instructions for each command are in `.claude/commands/cortex-init.md`.
 ## 6. System structure
 
 ```
-.claude/cortex/
-├── SYSTEM.md       ← This file. Behaviour instructions.
-└── context.md      ← Project data. The only editable file.
+.claude/
+├── commands/
+│   └── cortex-init.md  ← Project scanner (one-time setup, optional)
+└── cortex/
+    ├── SYSTEM.md       ← This file. Behaviour instructions.
+    └── context.md      ← Project data. The only editable file.
 ```
