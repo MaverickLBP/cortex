@@ -28,8 +28,11 @@ git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$TMP_DIR" 2>/dev/null || {
   exit 1
 }
 
-# ── Create .claude/cortex/ at target ─────────
+# ── Create .claude/ directories ──────────────
 mkdir -p "$TARGET/.claude/cortex"
+mkdir -p "$TARGET/.claude/commands"
+
+# ── Install system files ─────────────────────
 cp "$TMP_DIR/.claude/cortex/SYSTEM.md" "$TARGET/.claude/cortex/SYSTEM.md"
 
 if [ ! -f "$TARGET/.claude/cortex/context.md" ]; then
@@ -37,6 +40,13 @@ if [ ! -f "$TARGET/.claude/cortex/context.md" ]; then
   echo "✔ context.md created (initial template)"
 else
   echo "○ context.md exists — preserved"
+fi
+
+# ── Install optional commands ────────────────
+if [ -f "$TMP_DIR/.claude/commands/cortex-init.md" ]; then
+  cp "$TMP_DIR/.claude/commands/cortex-init.md" "$TARGET/.claude/commands/cortex-init.md"
+  echo "✔ cortex-init command installed"
+  echo "   Run with: /cortex-init (Claude Code) or 'run cortex-init' (any agent)"
 fi
 
 # ── Configure CLAUDE.md ──────────────────────

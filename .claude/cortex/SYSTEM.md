@@ -35,7 +35,15 @@ These updates need not be announced. The assistant performs them silently as par
 
 CORTEX lives exclusively in `.claude/cortex/`. Other systems may coexist in `.claude/` without interference. Each system has its own `SYSTEM.md` which the assistant loads according to the root `CLAUDE.md` references.
 
-## 5. System structure
+## 5. Commands
+
+| Command | How to invoke | Description |
+|---------|---------------|-------------|
+| **cortex-init** | Claude Code: `/cortex-init` · Any agent: "run cortex-init" | Scans the project and generates `context.md`. One-time use on first setup. |
+
+Instructions for each command are in `.claude/commands/cortex-init.md`.
+
+## 6. System structure
 
 ```
 .claude/cortex/
