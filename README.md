@@ -1,55 +1,69 @@
-# CORTEX — Context-Oriented Runtime Technical Experience
+# CORTEX — Knowledge layer for AI agents
 
-**Persistent project context for AI coding assistants.**
+**A dynamic knowledge system for AI coding assistants.**
 
-CORTEX is a minimal system that tells the agent what technologies your project uses, how it is structured, what commands to run, and what decisions have been made. A single context file loaded by the agent at session start.
+CORTEX lives in `.claude/cortex/` and provides your agent with a complete, living map of the project — what every folder contains, what each file does, and where things belong.
+
+## How it works
 
 ```
 project/
-├── CLAUDE.md              ← "This project uses CORTEX"
+├── CLAUDE.md                    ← "This project uses CORTEX"
 └── .claude/
-    ├── commands/
-    │   └── cortex-init.md  ← Instructions to generate context.md (optional)
-    └── cortex/             ← Everything CORTEX lives here
-        ├── SYSTEM.md       ← Agent instructions (do not edit)
-        └── context.md      ← Project data (edit this)
+    └── cortex/
+        ├── SYSTEM.md            ← Agent behaviour instructions (do not edit)
+        ├── MAP.md               ← Knowledge map (generated + maintained)
+        ├── commands/
+        │   ├── cortex-init.md       ← Project scanner command
+        │   └── cortex-view-map.md   ← View map command
+        └── scripts/
+            └── cortex-init.sh       ← Tree scanner (one-time setup)
 ```
 
-## Installation
+**MAP.md** is the heart of CORTEX. It documents every directory and every file in the project. The agent consults it to find what it needs and knows exactly where to create new files based on the project's conventions.
+
+## Quick start
+
+### 1. Install CORTEX in your project
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash
 ```
 
-In a specific directory:
+Or copy the `.claude/cortex/` directory manually into your project and add this line to `CLAUDE.md`:
 
-```bash
-curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/project
+```markdown
+This project uses **CORTEX** for its knowledge layer.
+→ Load `.claude/cortex/SYSTEM.md` for complete system instructions.
 ```
 
-## Quick start
-
-### Set up context manually
-
-1. Edit `.claude/cortex/context.md` with your project's information
-2. The agent automatically loads the context when starting a session
-3. When the project changes, update `context.md`
-
-### Or generate it automatically with cortex-init
-
-`cortex-init` scans your project and generates `context.md` from scratch — run it once on first setup:
+### 2. Generate the knowledge map
 
 ```
-Claude Code:  /cortex-init
-OpenCode:     "run cortex-init"
-Any agent:    "run cortex-init"
+/cortex-init          (Claude Code)
+run cortex-init       (OpenCode / any agent)
 ```
 
-The agent reads `package.json`, maps the directory structure, extracts conventions and commands, and writes everything to `context.md`. Review the result and fill in any gaps. Afterwards, `context.md` is maintained automatically — the agent updates it as you work and git syncs it across the team.
+The agent scans the entire project and builds MAP.md automatically.
+
+### 3. View the map anytime
+
+```
+/cortex-view-map      (Claude Code)
+run cortex-view-map   (OpenCode / any agent)
+```
+
+You can filter by section: `/cortex-view-map src/api`
+
+### 4. Work with knowledge
+
+The agent uses MAP.md on every session — finding files, understanding structure, and keeping the map updated as the project evolves.
 
 ## Compatibility
 
-Works with Claude Code, OpenCode, Cursor, GitHub Copilot, and any agent that reads `CLAUDE.md`. CORTEX is one more subdirectory in `.claude/` — compatible with other systems sharing the same space.
+- **Claude Code** — Full support
+- **OpenCode** — Full support
+- **Any agent that reads CLAUDE.md** — Full support
 
 ## License
 

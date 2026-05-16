@@ -1,55 +1,93 @@
 # CORTEX — System Instructions
 
-> System file. **Do not modify manually.**
-> To change project context, edit `context.md`.
-> Version: 2.0.0
+> System file — **do not modify manually.**
+> Version: 3.0.0
+> Knowledge layer for AI coding agents.
 
 ---
 
-## 1. Context loading
+## 1. The Knowledge Map
 
-When starting a session, the assistant MUST load `.claude/cortex/context.md` and use its contents as the project reference. This file contains the tech stack, directory structure, conventions, commands, and project notes.
+CORTEX is built around a single file: **MAP.md**.
 
-## 2. Using the context
+- `MAP.md` is the project's knowledge map — a complete directory tree where **every folder and file is documented** with its purpose.
+- The agent MUST load `MAP.md` at session start and keep it in context.
+- MAP.md is the **single source of truth** for project structure. Before searching or creating any file, consult MAP.md first.
 
-- **Stack:** use the listed technologies. Do not propose dependencies already covered by the existing stack.
-- **Structure:** locate files using the directory map before resorting to filesystem search tools. This avoids unnecessary disk reads.
-- **Conventions:** new code must follow documented patterns and rules.
-- **Commands:** use the exact commands for common tasks (dev, test, build, lint, etc.). Do not improvise flags or paths.
-- **Notes:** consult this section before working in areas with documented gotchas or decisions.
+## 2. How to use MAP.md
 
-## 3. Context maintenance
+### 2.1 Finding things
 
-The assistant MUST keep `context.md` updated autonomously:
+When the user asks you to work on something:
+
+1. Consult MAP.md to locate the relevant directories and files
+2. Navigate directly to them — no guesswork, no unnecessary filesystem scanning
+3. If you need to understand what a utility, component, or module does, read the MAP.md documentation for that file
+
+### 2.2 Creating new files
+
+When you need to create a new file:
+
+1. Consult MAP.md to determine where it belongs (e.g., utilities go in `src/shared/utils/`, repositories in `src/database/repositories/`)
+2. Follow the conventions documented for that directory
+3. If the file type doesn't exist yet in the project, create it where it logically fits and **update MAP.md**
+
+### 2.3 Updating MAP.md
+
+MAP.md is **living documentation**. Update it when:
 
 | Situation | Action |
 |-----------|--------|
-| Stack, structure or commands no longer reflect the project reality | Update the corresponding section |
-| An undocumented gotcha, trap or unexpected behavior is discovered | Add a dated entry in **Notes** |
-| A non-obvious technical decision is made (architecture, library, approach) | Add a dated entry in **Notes** with rationale and discarded alternatives |
-| A recurring pattern is detected in 2+ places in the codebase | Document it in **Conventions** |
+| A new directory or file is created | Add it to MAP.md with a brief description |
+| An existing file is renamed or moved | Update the path and description in MAP.md |
+| A directory's purpose changes | Update the description |
+| A file is removed | Remove or archive it in MAP.md |
 
-These updates need not be announced. The assistant performs them silently as part of normal operation.
+Updates happen **silently** as part of normal work. No need to announce them — just keep MAP.md accurate.
 
-## 4. Compatibility with other systems
+## 3. The cortex-init command
 
-CORTEX lives exclusively in `.claude/cortex/`. Other systems may coexist in `.claude/` without interference. Each system has its own `SYSTEM.md` which the assistant loads according to the root `CLAUDE.md` references.
+When run for the first time in a project (or when the project structure changes significantly):
 
-## 5. Commands
+**`/cortex-init`** (Claude Code) or **"run cortex-init"** (any agent)
 
-| Command | How to invoke | Description |
-|---------|---------------|-------------|
-| **cortex-init** | Claude Code: `/cortex-init` · Any agent: "run cortex-init" | Scans the project and generates `context.md`. One-time use on first setup. |
+Procedure:
+1. Execute `.claude/cortex/scripts/cortex-init.sh` to generate the raw directory tree
+2. Walk through every directory in the output, exploring files and documenting their purpose
+3. Write the complete MAP.md
+4. Inform the user that the knowledge map is ready
 
-Instructions for each command are in `.claude/commands/cortex-init.md`.
+## 4. Viewing the map
 
-## 6. System structure
+To display the current knowledge map at any time:
+
+**`/cortex-view-map`** (Claude Code) or **"run cortex-view-map"** (any agent)
+
+With optional filter: `/cortex-view-map src/api` to show only a specific section.
+
+The agent reads MAP.md and presents it to the user in a readable format.
+
+## 5. Knowledge sharing
+
+- MAP.md and all CORTEX files live in `.claude/cortex/` — they are part of the project
+- **Commit MAP.md changes** alongside related code changes
+- When another developer starts a session, their agent loads the same MAP.md — knowledge is shared via git
+- CORTEX files are normal project files. They appear in pull requests, code review, and history
+
+## 6. Project structure
 
 ```
 .claude/
-├── commands/
-│   └── cortex-init.md  ← Project scanner (one-time setup, optional)
 └── cortex/
-    ├── SYSTEM.md       ← This file. Behaviour instructions.
-    └── context.md      ← Project data. The only editable file.
+    ├── SYSTEM.md          ← This file. Behaviour instructions. Do not edit.
+    ├── MAP.md             ← Knowledge map. The only file you edit regularly.
+    ├── commands/
+    │   ├── cortex-init.md       ← Project scanner command
+    │   └── cortex-view-map.md   ← View map command
+    └── scripts/
+        └── cortex-init.sh       ← Tree scanner (optional, one-time setup)
 ```
+
+## 7. Compatibility
+
+CORTEX v3 works with **Claude Code** and **OpenCode**. Both read CLAUDE.md, follow the reference to SYSTEM.md, and load the instructions. No platform-specific features are required.
