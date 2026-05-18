@@ -1,7 +1,7 @@
 # CORTEX — System Instructions
 
 > System file — **do not modify manually.**
-> Version: 3.0.0
+> Version: 3.1.0
 > Knowledge layer for AI coding agents.
 
 ---
@@ -42,20 +42,35 @@ MAP.md is **living documentation**. Update it when:
 | An existing file is renamed or moved | Update the path and description in MAP.md |
 | A directory's purpose changes | Update the description |
 | A file is removed | Remove or archive it in MAP.md |
+| A dependency is added, removed, or upgraded | Update the Tech Stack table accordingly |
+| A new technology appears in the project | Add it to the Tech Stack table |
 
 Updates happen **silently** as part of normal work. No need to announce them — just keep MAP.md accurate.
 
 ## 3. The cortex-init command
 
-When run for the first time in a project (or when the project structure changes significantly):
+When run for the first time in a project:
 
 **`/cortex-init`** (Claude Code) or **"run cortex-init"** (any agent)
 
 Procedure:
 1. Execute `.claude/cortex/scripts/cortex-init.sh` to generate the raw directory tree
-2. Walk through every directory in the output, exploring files and documenting their purpose
-3. Write the complete MAP.md
-4. Inform the user that the knowledge map is ready
+2. Detect the project's tech stack (package.json, go.mod, Dockerfile, etc.)
+3. Walk through every directory in the output, exploring files and documenting their purpose
+4. Write the complete MAP.md with Tech Stack table + directory entries
+5. Inform the user that the knowledge map is ready
+
+## 3.1 The cortex-update command
+
+When the project structure changes or the MAP.md format evolves:
+
+**`/cortex-update`** (Claude Code) or **"run cortex-update"** (any agent)
+
+Unlike `cortex-init`, this command **preserves all existing content** and only adds, removes, or updates what has changed. Use it for:
+- New files or directories added
+- Files deleted or renamed
+- Missing sections (e.g. Tech Stack not yet present)
+- Refreshing the map without losing custom notes
 
 ## 4. Viewing the map
 
@@ -82,7 +97,8 @@ The agent reads MAP.md and presents it to the user in a readable format.
     ├── SYSTEM.md          ← This file. Behaviour instructions. Do not edit.
     ├── MAP.md             ← Knowledge map. The only file you edit regularly.
     ├── commands/
-    │   ├── cortex-init.md       ← Project scanner command
+    │   ├── cortex-init.md       ← First-run project scanner
+    │   ├── cortex-update.md     ← Maintenance updater (preserves content)
     │   └── cortex-view-map.md   ← View map command
     └── scripts/
         └── cortex-init.sh       ← Tree scanner (optional, one-time setup)
