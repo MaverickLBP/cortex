@@ -50,11 +50,17 @@ With no arguments, `install.sh` prompts for the project path interactively. Use 
 bash install.sh --source /path/to/cortex /path/to/project
 ```
 
-Or copy the `.claude/cortex/` directory manually into your project and add this line to `CLAUDE.md`:
+Or copy the `.claude/cortex/` directory manually into your project and add this section to `CLAUDE.md`:
 
 ```markdown
-This project uses **CORTEX** for its knowledge layer.
-→ Load `.claude/cortex/SYSTEM.md` for complete system instructions.
+# CORTEX — Project
+
+This project uses **CORTEX** as its knowledge layer.
+
+## Session start
+At session start, you MUST load `.claude/cortex/SYSTEM.md`.
+It contains mandatory system instructions and defines the project knowledge map (MAP.md).
+Follow all instructions within — this is required before any task execution.
 ```
 
 ### 2. Generate the knowledge map
