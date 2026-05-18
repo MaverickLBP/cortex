@@ -32,8 +32,22 @@ project/
 
 ### 1. Install CORTEX in your project
 
+Install in the current directory:
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash
+```
+
+Or specify a project path directly:
+
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh) /path/to/project
+```
+
+With no arguments, `install.sh` prompts for the project path interactively. Use `--source` to install from a local copy (no download):
+
+```bash
+bash install.sh --source /path/to/cortex /path/to/project
 ```
 
 Or copy the `.claude/cortex/` directory manually into your project and add this line to `CLAUDE.md`:
@@ -70,12 +84,24 @@ run cortex-view-map   (OpenCode / any agent)
 
 You can filter by section: `run cortex-view-map src/api`
 
+### 5. Workspace bridge (multi-project)
+
+If you work with a VS Code multi-root workspace (`.code-workspace`), generate a bridge `CLAUDE.md` that routes context to each project's CORTEX:
+
+```bash
+bash install-workspace-bridge.sh --file /path/to/workspace.code-workspace
+```
+
+Run without arguments for interactive mode. The bridge shows CORTEX status per project and instructs the agent to load the correct `SYSTEM.md` based on context.
+
 ---
 
 ## Project resources
 
 | Resource | Description |
 |----------|-------------|
+| [`install.sh`](./install.sh) | Install CORTEX in a single project (interactive or direct path) |
+| [`install-workspace-bridge.sh`](./install-workspace-bridge.sh) | Generate a multi-project workspace bridge from `.code-workspace` |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history following Keep a Changelog |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to report bugs, suggest features, and submit PRs |
 | [docs/](./docs/) | Web landing page (GitHub Pages) |

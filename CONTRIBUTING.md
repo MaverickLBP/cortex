@@ -29,8 +29,9 @@ Thank you for your interest in contributing. CORTEX is designed to be lightweigh
    ```
 3. Make your changes. Follow the existing style and conventions.
 4. Test your changes:
-   - Run `bash -n install.sh` to validate bash syntax.
+   - Run `bash -n install.sh install-workspace-bridge.sh` to validate bash syntax.
    - Test the installer locally: `bash install.sh --source /path/to/cortex /tmp/test-project`
+   - Test the workspace bridge: `bash install-workspace-bridge.sh --file /path/to/workspace.code-workspace`
    - Verify that all commands are copied to both `.claude/cortex/commands/` and `.claude/commands/`.
 5. Commit with a conventional commit message:
    ```
@@ -53,6 +54,9 @@ bash install.sh --source /path/to/cortex /tmp/test-project
 # Verify the installed files
 ls -la /tmp/test-project/.claude/cortex/
 ls -la /tmp/test-project/.claude/commands/
+
+# Test the workspace bridge (requires a .code-workspace file)
+bash install-workspace-bridge.sh --file /path/to/project.code-workspace
 ```
 
 ### Adding a new command

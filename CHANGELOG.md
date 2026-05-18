@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `install-workspace-bridge.sh` — generates a CLAUDE.md bridge from `.code-workspace` files for multi-project workspaces
+- Interactive mode in `install.sh` — prompts for project path when run without arguments
+
+### Changed
+- `cortex-workspace.sh` renamed to `install-workspace-bridge.sh` and simplified (single purpose: bridge generation)
+- Workspace bridge reduced to a single prompt for the `.code-workspace` file path
+
 ## [3.1.0] — 2026-05-18
 
 ### Added

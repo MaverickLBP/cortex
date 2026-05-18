@@ -171,6 +171,9 @@
             <div class="code-block">
               <code>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</code>
             </div>
+            <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
+              Or specify a path: <code>bash install.sh /path/to/project</code>
+            </p>
           </div>
         </div>
         <div class="col s12 m4">
@@ -364,11 +367,14 @@
         <div class="col s12 l6">
           <div class="card install-bottom-card hoverable">
             <div class="card-content">
-              <span class="card-title">Manual Install</span>
-              <p>Clone the repository and copy the <code>.claude/cortex/</code> directory into your project:</p>
+              <span class="card-title">Workspace Bridge</span>
+              <p>For VS Code multi-root workspaces (<code>.code-workspace</code>), generate a bridge <code>CLAUDE.md</code> that routes context to each project's CORTEX:</p>
               <div class="code-block">
-                <code>git clone https://github.com/MaverickLBP/cortex.git /tmp/cortex<br>cp -r /tmp/cortex/.claude your-project/<br>rm -rf /tmp/cortex</code>
+                <code>bash install-workspace-bridge.sh --file workspace.code-workspace</code>
               </div>
+              <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
+                Run without arguments for interactive mode.
+              </p>
             </div>
           </div>
         </div>

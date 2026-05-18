@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# ──────────────────────────────────────────────────────
+# CORTEX — Install Workspace Bridge
+#
+# Creates a CLAUDE.md at the workspace root from a
+# .code-workspace file, routing context to each project's
+# CORTEX knowledge layer.
+#
+# Does NOT install CORTEX in projects — run install.sh
+# on each project separately.
+#
+# Usage:
+#   bash install-workspace-bridge.sh                              # Interactive
+#   bash install-workspace-bridge.sh --file workspace.code-workspace
+#   bash install-workspace-bridge.sh path/to/workspace.code-workspace
+# ──────────────────────────────────────────────────────
+set -euo pipefail
+
+WS_FILE=""
+
+# ── Parse arguments ───────────────────────────────────
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --file)
+      WS_FILE="$2"
+      shift 2
+      ;;
+    --help|-h)
+      echo "Usage:"
+      echo "  bash install-workspace-bridge.sh                              # Interactive"
+      echo "  bash install-workspace-bridge.sh --file workspace.code-workspace"
+      echo "  bash install-workspace-bridge.sh path/to/workspace.code-workspace"
+      exit 0
+      ;;
+    *)
+      WS_FILE="$1"
+      shift
+      ;;
+  esac
+done
+
+# ── Colours ───────────────────────────────────────────
+if [ -t 1 ]; then
+  GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
+else
+  GREEN=''; CYAN=''; YELLOW=''; NC=''
+fi
+
+ok()     { echo -e "  ${GREEN}✔${NC} $1"; }
+info()   { echo -e "  ${CYAN}→${NC} $1"; }
+warn()   { echo -e "  ${YELLOW}⚠${NC} $1"; }
+prompt() { echo -e -n "  ${CYAN}?${NC} $1 "; }
+
+# ── Helpers ────────────────────────────────────────────
+
+parse_workspace_folders() {
+  local ws_file="$1"
+  local ws_dir
+  ws_dir="$(cd "$(dirname "$ws_file")" && pwd)"
+
+  if command -v python3 &>/dev/null; then
+    python3 -c "
+import json, os, sys, re
+try:
+    with open('$ws_file') as f:
+        raw = f.read()
+    raw = re.sub(r',\s*([\]}])', r'\1', raw)
+    data = json.loads(raw)
+    ws_dir = '$ws_dir'
+    for folder in data.get('folders', []):
+        path = folder.get('path', '')
+        if not path:
+            continue
+        if not os.path.isabs(path):
+            path = os.path.join(ws_dir, path)
+        print(os.path.normpath(path))
+except Exception as e:
+    sys.stderr.write('Error: ' + str(e) + '\n')
+    sys.exit(1)
+" 2>/dev/null && return 0 || true
+  fi
+
+  # Fallback: grep-based parser
+  grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$ws_file" | \
+    sed 's/"path" *: *"//;s/"$//' | \
+    while IFS= read -r rel; do
+      if [ "${rel:0:1}" = "/" ]; then
+        echo "$rel"
+      else
+        echo "$ws_dir/$rel"
+      fi
+    done
+}
+
+# ── Resolve workspace file ────────────────────────────
+
+if [ -z "$WS_FILE" ]; then
+  # Interactive mode
+  echo ""
+  echo "  CORTEX — Install Workspace Bridge"
+  echo "  ───────────────────────────────────────"
+  echo ""
+  prompt "Enter path to .code-workspace file:"
+  read -r WS_FILE
+  if [ -z "$WS_FILE" ] || [ ! -f "$WS_FILE" ]; then
+    echo "  File not found. Aborting."
+    exit 1
+  fi
+fi
+
+if [ ! -f "$WS_FILE" ]; then
+  echo "  Error: '$WS_FILE' not found."
+  exit 1
+fi
+WS_FILE="$(cd "$(dirname "$WS_FILE")" && pwd)/$(basename "$WS_FILE")"
+
+TARGET="$(dirname "$WS_FILE")"
+
+# ── Gather projects ───────────────────────────────────
+
+echo ""
+echo -e "  ${CYAN}⟐ CORTEX${NC} — Workspace Bridge"
+echo "  ───────────────────────────────────────"
+echo ""
+
+info "Parsing: $(basename "$WS_FILE")"
+
+project_dirs=()
+while IFS= read -r proj; do
+  [ -n "$proj" ] && project_dirs+=("$proj")
+done < <(parse_workspace_folders "$WS_FILE")
+
+if [ ${#project_dirs[@]} -eq 0 ]; then
+  echo "  No projects found in workspace file. Aborting."
+  exit 1
+fi
+
+info "Found ${#project_dirs[@]} project(s) in workspace"
+
+# ── Generate bridge ───────────────────────────────────
+
+bridge="$TARGET/CLAUDE.md"
+
+{
+  echo "# CORTEX — Workspace Bridge"
+  echo ""
+  echo "This directory contains a multi-project workspace."
+  echo "CORTEX knowledge layer status per project:"
+  echo ""
+  echo "| Project | CORTEX |"
+  echo "|---------|--------|"
+  for proj in "${project_dirs[@]}"; do
+    if [ -d "$proj" ]; then
+      proj_name=$(basename "$proj")
+      if [ -f "$proj/.claude/cortex/SYSTEM.md" ]; then
+        echo "| $proj_name | ✅ Initialized |"
+      else
+        echo "| $proj_name | ❌ Not initialized |"
+      fi
+    fi
+  done
+  echo ""
+  echo "## Session protocol"
+  echo ""
+  echo "At session start, the agent MUST:"
+  echo ""
+  echo "1. **Determine context**: Identify which project the user's task relates to."
+  echo "2. **Load CORTEX immediately**: Load that project's \`.claude/cortex/SYSTEM.md\` as the first action."
+  echo "3. **Follow system instructions**: SYSTEM.md will instruct you to load MAP.md — the knowledge map."
+  echo "4. **Context switch**: If the user switches projects mid-session, load the new project's SYSTEM.md."
+  echo ""
+  echo "---"
+  echo ""
+  echo "*This file was generated by CORTEX workspace bridge. Edit if workspace structure changes.*"
+} > "$bridge"
+
+ok "Bridge generated at $bridge"
+
+echo ""
+echo "  ───────────────────────────────────────"
+echo -e "  ${GREEN}✔ Workspace bridge ready${NC}"
+echo ""
+echo "  Next step: Run install.sh on each project"
+echo "  that doesn't have CORTEX yet (marked ❌ above)."
