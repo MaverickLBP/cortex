@@ -24,6 +24,10 @@ _CORTEX project root. Contains entry point files and license._
 - `CHANGELOG.md` → Version history following Keep a Changelog format. Documents all releases from v0.1.0 to current.
 - `CLAUDE.md` → Entry point for Claude Code and OpenCode. References `.claude/cortex/SYSTEM.md`. The agent loads this file at session start.
 - `CONTRIBUTING.md` → Contributor guide: how to report bugs, suggest features, submit pull requests, and development workflow.
+- `.github/` → GitHub community files: issue templates and pull request template.
+  - `ISSUE_TEMPLATE/bug_report.md` → Bug report template with environment and reproduction fields.
+  - `ISSUE_TEMPLATE/feature_request.md` → Feature request template with problem/solution structure.
+  - `PULL_REQUEST_TEMPLATE.md` → PR checklist specific to CORTEX conventions.
 - `README.md` → Project documentation: what CORTEX is, how to install it, how to use it.
 - `LICENSE` → MIT License with non-commercial redistribution clause.
 - `.gitignore` → Git exclusions: `.claude/settings.json`, `.env`, `.vscode/`, `.DS_Store`, etc.
