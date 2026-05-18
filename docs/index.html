@@ -370,8 +370,11 @@
               <span class="card-title">Workspace Bridge</span>
               <p>For VS Code multi-root workspaces (<code>.code-workspace</code>), generate a bridge <code>CLAUDE.md</code> that routes context to each project's CORTEX:</p>
               <div class="code-block">
-                <code>bash install-workspace-bridge.sh --file workspace.code-workspace</code>
+                <code>bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install-workspace-bridge.sh) --file workspace.code-workspace</code>
               </div>
+              <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
+                Or locally: <code>bash install-workspace-bridge.sh --file workspace.code-workspace</code>
+              </p>
               <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
                 Run without arguments for interactive mode.
               </p>

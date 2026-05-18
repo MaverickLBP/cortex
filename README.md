@@ -95,6 +95,12 @@ You can filter by section: `run cortex-view-map src/api`
 If you work with a VS Code multi-root workspace (`.code-workspace`), generate a bridge `CLAUDE.md` that routes context to each project's CORTEX:
 
 ```bash
+bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install-workspace-bridge.sh) --file workspace.code-workspace
+```
+
+Or from a local copy:
+
+```bash
 bash install-workspace-bridge.sh --file /path/to/workspace.code-workspace
 ```
 
