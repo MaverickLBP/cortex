@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CORTEX — A dynamic knowledge layer for AI coding agents. Markdown-first, agent-agnostic, zero dependencies.">
+  <title>CORTEX — Knowledge Layer for AI Coding Agents</title>
+
+  <!-- Materialize CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="css/custom.css">
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- NAVBAR -->
+  <!-- ════════════════════════════════════════════ -->
+  <nav class="nav-extended transparent z-depth-0" role="navigation">
+    <div class="nav-wrapper container">
+      <a href="#" class="brand-logo">
+        <i class="material-icons">hub</i>CORTEX
+      </a>
+      <a href="#" data-target="mobile-nav" class="sidenav-trigger">
+        <i class="material-icons">menu</i>
+      </a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="#about">About</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#compatibility">Compatibility</a></li>
+        <li><a href="#install">Install</a></li>
+        <li>
+          <a href="https://github.com/MaverickLBP/cortex" target="_blank" class="btn-small waves-effect waves-light">
+            <i class="material-icons">code</i>GitHub
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Mobile nav -->
+  <ul class="sidenav" id="mobile-nav">
+    <li><a href="#about" class="sidenav-close">About</a></li>
+    <li><a href="#how-it-works" class="sidenav-close">How It Works</a></li>
+    <li><a href="#commands" class="sidenav-close">Commands</a></li>
+    <li><a href="#compatibility" class="sidenav-close">Compatibility</a></li>
+    <li><a href="#install" class="sidenav-close">Install</a></li>
+    <li><div class="divider"></div></li>
+    <li><a href="https://github.com/MaverickLBP/cortex" target="_blank" class="sidenav-close">GitHub</a></li>
+  </ul>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- HERO -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="hero" class="hero-section">
+    <div class="container center-align">
+      <h1 class="hero-title">Knowledge Layer for<br><span class="gradient-text">AI Coding Agents</span></h1>
+      <p class="hero-subtitle flow-text">
+        CORTEX gives your AI assistant a persistent, living map of your project.
+        No runtime dependencies. No lock-in. Just Markdown and bash.
+      </p>
+      <div class="hero-actions">
+        <a href="#install" class="btn-large waves-effect waves-light btn-primary">
+          <i class="material-icons">download</i>Get Started
+        </a>
+        <a href="https://github.com/MaverickLBP/cortex" target="_blank" class="btn-large btn-outline waves-effect">
+          <i class="material-icons">open_in_new</i>View on GitHub
+        </a>
+      </div>
+      <div class="hero-tags">
+        <span class="chip"><i class="material-icons">description</i>Markdown-first</span>
+        <span class="chip"><i class="material-icons">devices</i>Agent-agnostic</span>
+        <span class="chip"><i class="material-icons">bolt</i>Zero dependencies</span>
+        <span class="chip"><i class="material-icons">update</i>Auto-updating</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- ABOUT -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="about" class="section scrollspy">
+    <div class="container">
+      <div class="section-header center-align">
+        <h2>What is CORTEX?</h2>
+        <p class="section-desc grey-text text-darken-1">
+          A dynamic knowledge system that lives in <code>.claude/cortex/</code> and provides
+          your AI agent with a complete, living map of your project.
+        </p>
+      </div>
+
+      <div class="row equal-height">
+        <div class="col s12 m6 l3">
+          <div class="feature-card card hoverable">
+            <div class="card-content">
+              <i class="material-icons feature-icon blue-text text-accent-2">map</i>
+              <span class="card-title">Living Knowledge Map</span>
+              <p>
+                <code>MAP.md</code> documents every directory and file in your project.
+                The agent keeps it updated as you work.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m6 l3">
+          <div class="feature-card card hoverable">
+            <div class="card-content">
+              <i class="material-icons feature-icon green-text text-accent-2">autorenew</i>
+              <span class="card-title">Auto-Maintained</span>
+              <p>
+                The agent updates <code>MAP.md</code> silently as part of normal work.
+                No manual documentation upkeep required.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m6 l3">
+          <div class="feature-card card hoverable">
+            <div class="card-content">
+              <i class="material-icons feature-icon orange-text text-accent-2">share</i>
+              <span class="card-title">Shared via Git</span>
+              <p>
+                CORTEX files are normal project files. They appear in commits,
+                pull requests, and code reviews. Knowledge travels with the repo.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m6 l3">
+          <div class="feature-card card hoverable">
+            <div class="card-content">
+              <i class="material-icons feature-icon purple-text text-accent-2">extension</i>
+              <span class="card-title">Agent-Agnostic</span>
+              <p>
+                Works with Claude Code, OpenCode, Cursor, GitHub Copilot, and any
+                agent that reads <code>CLAUDE.md</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- HOW IT WORKS -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="how-it-works" class="section grey lighten-5 scrollspy">
+    <div class="container">
+      <div class="section-header center-align">
+        <h2>How It Works</h2>
+        <p class="section-desc grey-text text-darken-1">
+          Three steps to give your AI agent persistent project knowledge.
+        </p>
+      </div>
+
+      <div class="row equal-height">
+        <div class="col s12 m4">
+          <div class="step-card center-align">
+            <div class="step-number blue accent-2 white-text">1</div>
+            <h5>Install</h5>
+            <p class="grey-text text-darken-1">
+              Run a single curl command. CORTEX sets up <code>.claude/cortex/</code>
+              and configures <code>CLAUDE.md</code> automatically.
+            </p>
+            <div class="code-block">
+              <code>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</code>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m4">
+          <div class="step-card center-align">
+            <div class="step-number green accent-2 white-text">2</div>
+            <h5>Initialize</h5>
+            <p class="grey-text text-darken-1">
+              The agent scans your project structure, detects the tech stack,
+              and builds <code>MAP.md</code> from scratch.
+            </p>
+            <div class="code-block">
+              <code>/cortex-init</code>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m4">
+          <div class="step-card center-align">
+            <div class="step-number orange accent-2 white-text">3</div>
+            <h5>Work</h5>
+            <p class="grey-text text-darken-1">
+              The agent consults <code>MAP.md</code> on every session — finding files,
+              understanding structure, and keeping the map updated.
+            </p>
+            <div class="code-block">
+              <code>/cortex-view-map</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- COMMANDS -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="commands" class="section scrollspy">
+    <div class="container">
+      <div class="section-header center-align">
+        <h2>Commands</h2>
+        <p class="section-desc grey-text text-darken-1">
+          Three commands to manage your project's knowledge layer.
+        </p>
+      </div>
+
+      <div class="row equal-height">
+        <div class="col s12 m4">
+          <div class="command-card card hoverable">
+            <div class="card-content">
+              <span class="command-badge blue white-text">init</span>
+              <span class="card-title">cortex-init</span>
+              <p>
+                First-run project scanner. Walks the entire directory tree,
+                detects the tech stack, and generates <code>MAP.md</code> from scratch.
+              </p>
+              <div class="divider"></div>
+              <p class="grey-text text-darken-1" style="margin-top: 12px;">
+                <strong>Claude Code:</strong> <code>/cortex-init</code><br>
+                <strong>OpenCode:</strong> <code>run cortex-init</code>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m4">
+          <div class="command-card card hoverable">
+            <div class="card-content">
+              <span class="command-badge green white-text">update</span>
+              <span class="card-title">cortex-update</span>
+              <p>
+                Incremental maintenance. Preserves all existing content and only
+                adds, removes, or updates what has changed since last scan.
+              </p>
+              <div class="divider"></div>
+              <p class="grey-text text-darken-1" style="margin-top: 12px;">
+                <strong>Claude Code:</strong> <code>/cortex-update</code><br>
+                <strong>OpenCode:</strong> <code>run cortex-update</code>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m4">
+          <div class="command-card card hoverable">
+            <div class="card-content">
+              <span class="command-badge orange white-text">view</span>
+              <span class="card-title">cortex-view-map</span>
+              <p>
+                Display the current knowledge map. Supports optional path filter
+                to show only a specific section of the project.
+              </p>
+              <div class="divider"></div>
+              <p class="grey-text text-darken-1" style="margin-top: 12px;">
+                <strong>Claude Code:</strong> <code>/cortex-view-map</code><br>
+                <strong>OpenCode:</strong> <code>run cortex-view-map</code>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- COMPATIBILITY -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="compatibility" class="section grey lighten-5 scrollspy">
+    <div class="container">
+      <div class="section-header center-align">
+        <h2>Compatibility</h2>
+        <p class="section-desc grey-text text-darken-1">
+          CORTEX works with any agent that reads <code>CLAUDE.md</code>.
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="col s12">
+          <table class="highlight centered responsive-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Support</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Claude Code</strong></td>
+                <td><span class="new badge green" data-badge-caption="Full"></span></td>
+                <td>Slash commands, <code>CLAUDE.md</code>, hooks</td>
+              </tr>
+              <tr>
+                <td><strong>OpenCode</strong></td>
+                <td><span class="new badge green" data-badge-caption="Full"></span></td>
+                <td>Natural language commands, <code>CLAUDE.md</code></td>
+              </tr>
+              <tr>
+                <td><strong>Cursor</strong></td>
+                <td><span class="new badge green" data-badge-caption="Full"></span></td>
+                <td><code>CLAUDE.md</code> supported</td>
+              </tr>
+              <tr>
+                <td><strong>GitHub Copilot</strong></td>
+                <td><span class="new badge orange" data-badge-caption="Partial"></span></td>
+                <td><code>CLAUDE.md</code> functional, no slash commands</td>
+              </tr>
+              <tr>
+                <td><strong>Any agent</strong></td>
+                <td><span class="new badge blue" data-badge-caption="Basic"></span></td>
+                <td>Reads <code>CLAUDE.md</code> and follows instructions</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- INSTALL -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="install" class="section scrollspy">
+    <div class="container">
+      <div class="section-header center-align">
+        <h2>Installation</h2>
+        <p class="section-desc grey-text text-darken-1">
+          One command to add CORTEX to any project.
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="col s12 l8 offset-l2">
+          <div class="card install-card">
+            <div class="card-content">
+              <h5 class="center-align">Quick Install</h5>
+              <div class="code-block large">
+                <code id="install-cmd">curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</code>
+                <button class="btn-flat waves-effect copy-btn" onclick="copyInstall()" title="Copy to clipboard">
+                  <i class="material-icons">content_copy</i>
+                </button>
+              </div>
+              <p class="grey-text text-darken-1 center-align" style="margin-top: 16px;">
+                Or install to a specific directory:
+              </p>
+              <div class="code-block">
+                <code>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash -s -- /path/to/project</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row equal-height">
+        <div class="col s12 l6">
+          <div class="card install-bottom-card hoverable">
+            <div class="card-content">
+              <span class="card-title">Manual Install</span>
+              <p>Clone the repository and copy the <code>.claude/cortex/</code> directory into your project:</p>
+              <div class="code-block">
+                <code>git clone https://github.com/MaverickLBP/cortex.git /tmp/cortex<br>cp -r /tmp/cortex/.claude your-project/<br>rm -rf /tmp/cortex</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 l6">
+          <div class="card install-bottom-card hoverable">
+            <div class="card-content">
+              <span class="card-title">After Installing</span>
+              <ol class="browser-default" style="padding-left: 20px;">
+                <li>Start a session with your AI agent</li>
+                <li>Run <code>/cortex-init</code> to scan your project</li>
+                <li>Run <code>/cortex-view-map</code> to see the knowledge map</li>
+                <li>Use <code>/cortex-update</code> after structural changes</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- CTA -->
+  <!-- ════════════════════════════════════════════ -->
+  <section id="cta" class="section cta-section">
+    <div class="container center-align">
+      <h4 class="white-text">Ready to give your agent a memory?</h4>
+      <p class="flow-text grey-text text-lighten-2">
+        Install CORTEX in your project and never lose context again.
+      </p>
+      <a href="https://github.com/MaverickLBP/cortex" target="_blank" class="btn-large waves-effect waves-light btn-primary">
+        <i class="material-icons">star</i>Star on GitHub
+      </a>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- FOOTER -->
+  <!-- ════════════════════════════════════════════ -->
+  <footer class="page-footer grey darken-4">
+    <div class="container">
+      <div class="row">
+        <div class="col s12 m6">
+          <h6 class="white-text">
+            <i class="material-icons tiny">hub</i> CORTEX
+          </h6>
+          <p class="grey-text text-lighten-1">
+            Knowledge layer for AI coding agents.<br>
+            Markdown-first. Agent-agnostic. Zero dependencies.
+          </p>
+        </div>
+        <div class="col s12 m4 offset-m2">
+          <h6 class="white-text">Links</h6>
+          <ul>
+            <li><a href="https://github.com/MaverickLBP/cortex" class="grey-text text-lighten-1" target="_blank">GitHub Repository</a></li>
+            <li><a href="https://github.com/MaverickLBP/cortex/blob/main/LICENSE" class="grey-text text-lighten-1" target="_blank">MIT License</a></li>
+            <li><a href="https://github.com/MaverickLBP/cortex/blob/main/CONTRIBUTING.md" class="grey-text text-lighten-1" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-copyright grey darken-3">
+      <div class="container">
+        &copy; 2026 CORTEX — MIT License with non-commercial redistribution clause
+      </div>
+    </div>
+  </footer>
+
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <!-- Custom JS -->
+  <script src="js/main.js"></script>
+</body>
+</html>
