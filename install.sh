@@ -135,6 +135,10 @@ copy_file "$SRC/.claude/cortex/commands/cortex-view-map.md" \
           "$TARGET/.claude/cortex/commands/cortex-view-map.md" && \
   ok "Installed cortex-view-map command" || warn "cortex-view-map.md not found"
 
+copy_file "$SRC/.claude/cortex/commands/cortex-update.md" \
+          "$TARGET/.claude/cortex/commands/cortex-update.md" && \
+  ok "Installed cortex-update command" || warn "cortex-update.md not found"
+
 if copy_file "$SRC/.claude/cortex/scripts/cortex-init.sh" \
              "$TARGET/.claude/cortex/scripts/cortex-init.sh"; then
   chmod +x "$TARGET/.claude/cortex/scripts/cortex-init.sh"
@@ -151,6 +155,10 @@ copy_file "$SRC/.claude/cortex/commands/cortex-init.md" \
 copy_file "$SRC/.claude/cortex/commands/cortex-view-map.md" \
           "$TARGET/.claude/commands/cortex-view-map.md" && \
   ok "Installed /cortex-view-map slash command"
+
+copy_file "$SRC/.claude/cortex/commands/cortex-update.md" \
+          "$TARGET/.claude/commands/cortex-update.md" && \
+  ok "Installed /cortex-update slash command"
 
 # ── Configure CLAUDE.md ───────────────────────────────
 CLAUDERC="$TARGET/CLAUDE.md"
@@ -191,4 +199,6 @@ echo "       or   run cortex-init  (OpenCode / any agent)"
 echo "    2. The agent will scan the project and build MAP.md"
 echo "    3. Run  /cortex-view-map  to see the map at any time"
 echo "       or   run cortex-view-map  (with optional filter)"
+echo "    4. Run  /cortex-update  to refresh the map after changes"
+echo "       or   run cortex-update  (preserves existing content)"
 echo ""
