@@ -176,12 +176,20 @@ echo "  ────────────────────────
 
 # Resolve target
 if [ -z "$TARGET" ]; then
-  echo ""
-  prompt "Enter project path:"
-  read -r TARGET
-  if [ -z "$TARGET" ] || [ ! -d "$TARGET" ]; then
-    echo "  Error: '$TARGET' is not a valid directory."
-    exit 1
+  if [ -t 0 ]; then
+    # Interactive terminal — prompt the user
+    echo ""
+    prompt "Enter project path:"
+    read -r TARGET
+    if [ -z "$TARGET" ] || [ ! -d "$TARGET" ]; then
+      echo "  Error: '$TARGET' is not a valid directory."
+      exit 1
+    fi
+  else
+    # Non-interactive (piped stdin) — default to current directory
+    TARGET="."
+    echo ""
+    info "No project path specified; using current directory: $(pwd)"
   fi
 fi
 
