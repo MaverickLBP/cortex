@@ -1,7 +1,7 @@
 # Knowledge Map — CORTEX
 
 > Knowledge layer for AI coding agents.
-> MAP.md generated: 2026-06-18 (updated for v4.0.0)
+> MAP.md generated: 2026-06-18 (updated for v4.0.0 — cortex-update run 2026-06-18)
 > Keep this file updated as the project evolves.
 
 ---
@@ -22,7 +22,6 @@ _CORTEX is intentionally lightweight — no runtime dependencies. It is a knowle
 _CORTEX project root. Contains entry point files and license._
 
 - `CHANGELOG.md` → Version history following Keep a Changelog format. Documents all releases from v0.1.0 to current.
-- `CLAUDE.md` → Minimal entry point for Claude Code (fallback reference only — enforcement is handled by the SessionStart hook in v4).
 - `CONTRIBUTING.md` → Contributor guide: how to report bugs, suggest features, submit pull requests, and development workflow.
 - `.github/` → GitHub community files: issue templates and pull request template.
   - `ISSUE_TEMPLATE/bug_report.md` → Bug report template with environment and reproduction fields.
@@ -77,6 +76,16 @@ _Slash commands for Claude Code. Copied from `.cortex/commands/` by the installe
 - `cortex-init.md` → Copy of `.cortex/commands/cortex-init.md`
 - `cortex-update.md` → Copy of `.cortex/commands/cortex-update.md`
 - `cortex-view-map.md` → Copy of `.cortex/commands/cortex-view-map.md`
+
+---
+
+## 📁 docs/
+
+_Web landing page served via GitHub Pages. Static site — no build step, no runtime dependencies._
+
+- `index.html` → Landing page with sections: About, How It Works, Commands, Compatibility, Install. Built with Materialize CSS.
+- `css/custom.css` → Custom Material Design overrides: typography, layout, hero, cards, code blocks, responsive breakpoints.
+- `js/main.js` → Materialize initialisation (sidenav), smooth-scroll anchor links, copy-to-clipboard for install command.
 
 ---
 

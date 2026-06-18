@@ -52,7 +52,7 @@ if [ -n "$WS_ROOT" ]; then
     proj_dir="$(dirname "$(dirname "$sys_md")")"
     proj_name="$(basename "$proj_dir")"
     project_list="${project_list}- ${proj_name} (.cortex/ at ${proj_dir}/.cortex/)\n"
-  done < <(find "$WS_ROOT" -maxdepth 3 -name "SYSTEM.md" -path "*/.cortex/SYSTEM.md" | sort)
+  done < <(find "$WS_ROOT" -maxdepth 4 -name "SYSTEM.md" -path "*/.cortex/SYSTEM.md" | sort)
 
   [ -z "$project_list" ] && exit 0
 

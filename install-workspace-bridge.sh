@@ -60,14 +60,15 @@ parse_workspace_folders() {
   ws_dir="$(cd "$(dirname "$ws_file")" && pwd)"
 
   if command -v python3 &>/dev/null; then
-    python3 -c "
+    python3 - "$ws_file" "$ws_dir" << 'PYEOF' 2>/dev/null && return 0 || true
 import json, os, sys, re
 try:
-    with open('$ws_file') as f:
+    ws_file = sys.argv[1]
+    ws_dir  = sys.argv[2]
+    with open(ws_file) as f:
         raw = f.read()
     raw = re.sub(r',\s*([\]}])', r'\1', raw)
     data = json.loads(raw)
-    ws_dir = '$ws_dir'
     for folder in data.get('folders', []):
         path = folder.get('path', '')
         if not path:
@@ -78,7 +79,7 @@ try:
 except Exception as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
-" 2>/dev/null && return 0 || true
+PYEOF
   fi
 
   # Fallback: grep-based parser
@@ -141,24 +142,19 @@ info "Found ${#project_dirs[@]} project(s) in workspace"
 
 marker="$TARGET/.cortex-workspace.json"
 
-projects_json="["
-first=1
+projects_json="[]"
 for proj in "${project_dirs[@]}"; do
   [ -d "$proj" ] || continue
   proj_name=$(basename "$proj")
-  if [ "$first" = "1" ]; then
-    first=0
-  else
-    projects_json="${projects_json},"
-  fi
   if [ -f "$proj/.cortex/SYSTEM.md" ]; then
     cortex_status="initialized"
   else
     cortex_status="not_initialized"
   fi
-  projects_json="${projects_json}{\"name\":\"${proj_name}\",\"path\":\"${proj}\",\"cortex\":\"${cortex_status}\"}"
+  entry="$(jq -n --arg name "$proj_name" --arg path "$proj" --arg cortex "$cortex_status" \
+    '{name: $name, path: $path, cortex: $cortex}')"
+  projects_json="$(echo "$projects_json" | jq --argjson entry "$entry" '. += [$entry]')"
 done
-projects_json="${projects_json}]"
 
 generated="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 workspace_name="$(basename "$WS_FILE" .code-workspace)"
