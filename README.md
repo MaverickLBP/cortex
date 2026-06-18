@@ -76,6 +76,8 @@ bash install.sh --source /path/to/cortex --agent claude /path/to/project
 /cortex-init
 ```
 
+> Works the same in Claude Code and OpenCode — type the slash command in your agent's chat.
+
 The agent scans the entire project, detects the tech stack, and builds MAP.md automatically.
 
 ### 3. Update the map as the project evolves
@@ -128,8 +130,10 @@ This creates a `.cortex-workspace.json` marker at the workspace root. The `corte
 
 ## Compatibility
 
-- **Claude Code** — Full support via `SessionStart` hook + slash commands
-- **OpenCode** — Full support via `opencode.json` instructions + slash commands
+| Agent | Enforcement | Commands |
+|---|---|---|
+| **Claude Code** | `SessionStart` hook injects SYSTEM.md + MAP.md at every session start | `/cortex-init`, `/cortex-update`, `/cortex-view-map` |
+| **OpenCode** | `opencode.json` → `instructions` auto-loads SYSTEM.md + MAP.md | `/cortex-init`, `/cortex-update`, `/cortex-view-map` |
 
 ---
 

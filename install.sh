@@ -167,7 +167,9 @@ install_claude() {
     tmp="$(mktemp)"
     jq --argjson entry "$hook_entry" '
       .hooks.SessionStart //= [] |
-      if (.hooks.SessionStart | map(select(.hooks != null)) | length) > 0
+      if (.hooks.SessionStart // [] |
+          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-session.sh")) |
+          length) > 0
       then .
       else
         .hooks.SessionStart += [{"hooks": [$entry]}]
@@ -189,16 +191,18 @@ install_claude() {
 
   # .gitignore — track settings.json, ignore settings.local.json
   local gitignore="$target/.gitignore"
-  if [ -f "$gitignore" ]; then
-    # Remove old blanket ignore of .claude/settings.json if present
-    if grep -q "^\.claude/settings\.json$" "$gitignore" 2>/dev/null; then
-      sed -i '/^\.claude\/settings\.json$/d' "$gitignore"
-      warn "Removed .claude/settings.json from .gitignore (it should now be committed)"
-    fi
-    if ! grep -q "\.claude/settings\.local\.json" "$gitignore" 2>/dev/null; then
-      echo ".claude/settings.local.json" >> "$gitignore"
-      ok "Added .claude/settings.local.json to .gitignore"
-    fi
+  if [ ! -f "$gitignore" ]; then
+    touch "$gitignore"
+    ok "Created .gitignore"
+  fi
+  # Remove old blanket ignore of .claude/settings.json if present
+  if grep -q "^\.claude/settings\.json$" "$gitignore" 2>/dev/null; then
+    sed -i '/^\.claude\/settings\.json$/d' "$gitignore"
+    warn "Removed .claude/settings.json from .gitignore (it should now be committed)"
+  fi
+  if ! grep -q "\.claude/settings\.local\.json" "$gitignore" 2>/dev/null; then
+    echo ".claude/settings.local.json" >> "$gitignore"
+    ok "Added .claude/settings.local.json to .gitignore"
   fi
 }
 
@@ -329,6 +333,7 @@ if [ -n "$SOURCE_DIR" ]; then
   info "Using local source: $SRC"
 else
   TMP_DIR=$(mktemp -d)
+  trap 'rm -rf "${TMP_DIR:-}"' EXIT
   info "Downloading CORTEX from $REPO_URL..."
   if ! git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$TMP_DIR" 2>/dev/null; then
     err "Download failed. Check your connection."

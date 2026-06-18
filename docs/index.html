@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CORTEX — A dynamic knowledge layer for AI coding agents. Markdown-first, agent-agnostic, zero dependencies.">
+  <meta name="description" content="CORTEX — A dynamic knowledge layer for Claude Code and OpenCode. Persistent project knowledge via MAP.md. Zero dependencies.">
   <title>CORTEX — Knowledge Layer for AI Coding Agents</title>
 
   <!-- Materialize CSS -->
@@ -74,7 +74,7 @@
       </div>
       <div class="hero-tags">
         <span class="chip"><i class="material-icons">description</i>Markdown-first</span>
-        <span class="chip"><i class="material-icons">devices</i>Agent-agnostic</span>
+        <span class="chip"><i class="material-icons">devices</i>Claude Code &amp; OpenCode</span>
         <span class="chip"><i class="material-icons">bolt</i>Zero dependencies</span>
         <span class="chip"><i class="material-icons">update</i>Auto-updating</span>
       </div>
@@ -89,7 +89,7 @@
       <div class="section-header center-align">
         <h2>What is CORTEX?</h2>
         <p class="section-desc grey-text text-darken-1">
-          A dynamic knowledge system that lives in <code>.claude/cortex/</code> and provides
+          A dynamic knowledge system that lives in <code>.cortex/</code> and provides
           your AI agent with a complete, living map of your project.
         </p>
       </div>
@@ -135,10 +135,10 @@
           <div class="feature-card card hoverable">
             <div class="card-content">
               <i class="material-icons feature-icon purple-text text-accent-2">extension</i>
-              <span class="card-title">Agent-Agnostic</span>
+              <span class="card-title">Native Enforcement</span>
               <p>
-                Works with Claude Code, OpenCode, Cursor, GitHub Copilot, and any
-                agent that reads <code>CLAUDE.md</code>.
+                Deep integration with Claude Code (SessionStart hook) and OpenCode
+                (<code>opencode.json</code> instructions). Knowledge loads at every session start.
               </p>
             </div>
           </div>
@@ -165,8 +165,8 @@
             <div class="step-number blue accent-2 white-text">1</div>
             <h5>Install</h5>
             <p class="grey-text text-darken-1">
-              Run a single curl command. CORTEX sets up <code>.claude/cortex/</code>
-              and configures <code>CLAUDE.md</code> automatically.
+              Run a single curl command. CORTEX creates <code>.cortex/</code>,
+              installs the knowledge layer, and configures your agent's native enforcement.
             </p>
             <div class="code-block">
               <code>curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash</code>
@@ -187,6 +187,9 @@
             <div class="code-block">
               <code>/cortex-init</code>
             </div>
+            <p class="grey-text text-darken-2" style="margin-top: 10px; font-size: 0.85rem;">
+              Claude Code and OpenCode — same command
+            </p>
           </div>
         </div>
         <div class="col s12 m4">
@@ -231,7 +234,7 @@
               <div class="divider"></div>
               <p class="grey-text text-darken-1" style="margin-top: 12px;">
                 <strong>Claude Code:</strong> <code>/cortex-init</code><br>
-                <strong>OpenCode:</strong> <code>run cortex-init</code>
+                <strong>OpenCode:</strong> <code>/cortex-init</code>
               </p>
             </div>
           </div>
@@ -248,7 +251,7 @@
               <div class="divider"></div>
               <p class="grey-text text-darken-1" style="margin-top: 12px;">
                 <strong>Claude Code:</strong> <code>/cortex-update</code><br>
-                <strong>OpenCode:</strong> <code>run cortex-update</code>
+                <strong>OpenCode:</strong> <code>/cortex-update</code>
               </p>
             </div>
           </div>
@@ -265,7 +268,7 @@
               <div class="divider"></div>
               <p class="grey-text text-darken-1" style="margin-top: 12px;">
                 <strong>Claude Code:</strong> <code>/cortex-view-map</code><br>
-                <strong>OpenCode:</strong> <code>run cortex-view-map</code>
+                <strong>OpenCode:</strong> <code>/cortex-view-map</code>
               </p>
             </div>
           </div>
@@ -282,7 +285,7 @@
       <div class="section-header center-align">
         <h2>Compatibility</h2>
         <p class="section-desc grey-text text-darken-1">
-          CORTEX works with any agent that reads <code>CLAUDE.md</code>.
+          Native, guaranteed enforcement for Claude Code and OpenCode.
         </p>
       </div>
 
@@ -300,27 +303,12 @@
               <tr>
                 <td><strong>Claude Code</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td>Slash commands, <code>CLAUDE.md</code>, hooks</td>
+                <td>SessionStart hook + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
               </tr>
               <tr>
                 <td><strong>OpenCode</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td>Natural language commands, <code>CLAUDE.md</code></td>
-              </tr>
-              <tr>
-                <td><strong>Cursor</strong></td>
-                <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td><code>CLAUDE.md</code> supported</td>
-              </tr>
-              <tr>
-                <td><strong>GitHub Copilot</strong></td>
-                <td><span class="new badge orange" data-badge-caption="Partial"></span></td>
-                <td><code>CLAUDE.md</code> functional, no slash commands</td>
-              </tr>
-              <tr>
-                <td><strong>Any agent</strong></td>
-                <td><span class="new badge blue" data-badge-caption="Basic"></span></td>
-                <td>Reads <code>CLAUDE.md</code> and follows instructions</td>
+                <td><code>opencode.json</code> auto-loads knowledge at session start + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
               </tr>
             </tbody>
           </table>
@@ -368,7 +356,7 @@
           <div class="card install-bottom-card hoverable">
             <div class="card-content">
               <span class="card-title">Workspace Bridge</span>
-              <p>For VS Code multi-root workspaces (<code>.code-workspace</code>), generate a bridge <code>CLAUDE.md</code> that routes context to each project's CORTEX:</p>
+              <p>For VS Code multi-root workspaces (<code>.code-workspace</code>), create a <code>.cortex-workspace.json</code> marker that enables workspace mode in the hook:</p>
               <div class="code-block">
                 <code>bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install-workspace-bridge.sh) --file workspace.code-workspace</code>
               </div>
@@ -385,11 +373,12 @@
           <div class="card install-bottom-card hoverable">
             <div class="card-content">
               <span class="card-title">After Installing</span>
+              <p class="grey-text text-darken-1" style="font-size: 0.9rem; margin-bottom: 8px;">Commands work the same in Claude Code and OpenCode:</p>
               <ol class="browser-default" style="padding-left: 20px;">
-                <li>Start a session with your AI agent</li>
-                <li>Run <code>/cortex-init</code> to scan your project</li>
-                <li>Run <code>/cortex-view-map</code> to see the knowledge map</li>
-                <li>Use <code>/cortex-update</code> after structural changes</li>
+                <li>Start a new session with your agent</li>
+                <li>Run <code>/cortex-init</code> to generate the knowledge map</li>
+                <li>Run <code>/cortex-view-map</code> to display the map</li>
+                <li>Run <code>/cortex-update</code> after adding or removing files</li>
               </ol>
             </div>
           </div>
@@ -424,8 +413,8 @@
             <i class="material-icons tiny">hub</i> CORTEX
           </h6>
           <p class="grey-text text-lighten-1">
-            Knowledge layer for AI coding agents.<br>
-            Markdown-first. Agent-agnostic. Zero dependencies.
+            Knowledge layer for Claude Code and OpenCode.<br>
+            Markdown-first. Zero dependencies.
           </p>
         </div>
         <div class="col s12 m4 offset-m2">
