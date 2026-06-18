@@ -68,8 +68,6 @@ From a local copy (no download):
 bash install.sh --source /path/to/cortex --agent claude /path/to/project
 ```
 
-**Migrating from v3?** The installer detects the old `.claude/cortex/` layout and automatically moves the knowledge to `.cortex/` (MAP.md is preserved).
-
 **After installing for Claude Code:** commit `.claude/settings.json` — it registers the hook that enforces CORTEX at session start. Per-user overrides go in `.claude/settings.local.json` (gitignored).
 
 ### 2. Generate the knowledge map
@@ -119,7 +117,7 @@ This creates a `.cortex-workspace.json` marker at the workspace root. The `corte
 
 | Resource | Description |
 |----------|-------------|
-| [`install.sh`](./install.sh) | Install CORTEX in a single project (agent selection, migration) |
+| [`install.sh`](./install.sh) | Install CORTEX in a single project (agent selection) |
 | [`install-workspace-bridge.sh`](./install-workspace-bridge.sh) | Generate `.cortex-workspace.json` for multi-project workspaces (Claude Code) |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history following Keep a Changelog |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to report bugs, suggest features, and submit PRs |

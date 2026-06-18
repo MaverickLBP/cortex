@@ -93,28 +93,6 @@ json_array_add() {
     "$file" > "$tmp" && mv "$tmp" "$file"
 }
 
-# ── Migration: .claude/cortex/ → .cortex/ ─────────────
-
-migrate_old_cortex() {
-  local target="$1"
-  local old="$target/.claude/cortex"
-
-  [ -f "$old/SYSTEM.md" ] || return 0
-  [ -d "$target/.cortex" ] && return 0   # already migrated
-
-  warn "Detected old CORTEX layout (.claude/cortex/) — migrating to .cortex/"
-  mkdir -p "$target/.cortex/scripts"
-
-  # Move knowledge files; preserve MAP.md
-  mv "$old/SYSTEM.md" "$target/.cortex/SYSTEM.md"
-  [ -f "$old/MAP.md" ] && mv "$old/MAP.md" "$target/.cortex/MAP.md"
-  [ -d "$old/scripts" ] && cp -r "$old/scripts/." "$target/.cortex/scripts/"
-
-  # Remove old cortex dir (commands there are stale)
-  rm -rf "$old"
-  ok "Migrated knowledge to .cortex/"
-}
-
 # ── Install .cortex/ knowledge ─────────────────────────
 
 install_knowledge() {
@@ -268,9 +246,6 @@ install_cortex() {
     err "Directory not found: '$target'"
     exit 1
   }
-
-  # Migration
-  migrate_old_cortex "$target"
 
   # Knowledge (always)
   install_knowledge "$target" "$src"
