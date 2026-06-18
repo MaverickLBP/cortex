@@ -1,12 +1,12 @@
+---
+description: Generate the knowledge map (first run). Scans the project and writes .cortex/MAP.md.
+---
+
 # cortex-init — Generate the knowledge map (first run)
 
-Generates `.claude/cortex/MAP.md` by scanning the project and documenting every directory and file.
+Generates `.cortex/MAP.md` by scanning the project and documenting every directory and file.
 
 Run this **once** when first setting up CORTEX in a project. For subsequent updates, use `cortex-update` instead.
-
-**Invocation:**
-- Claude Code: `/cortex-init`
-- OpenCode / Any agent: "run cortex-init"
 
 ---
 
@@ -35,7 +35,7 @@ Before exploring directories, identify the project's technologies and versions:
 Execute the scanner script:
 
 ```bash
-bash .claude/cortex/scripts/cortex-init.sh
+bash .cortex/scripts/cortex-init.sh
 ```
 
 The script prints a complete directory tree of the project (excluding `.git`, `node_modules`, and other common ignored directories).
@@ -55,7 +55,7 @@ For deeply nested or very large directories, examine representative files to inf
 
 ### Step 3 — Write MAP.md
 
-Generate `.claude/cortex/MAP.md` following this format:
+Generate `.cortex/MAP.md` following this format:
 
 ```markdown
 # Knowledge Map — [Project Name]

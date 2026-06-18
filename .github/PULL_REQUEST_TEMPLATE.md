@@ -16,7 +16,7 @@ Briefly describe what this PR does and why it's needed.
 - [ ] I have followed the existing code style and conventions
 - [ ] I have tested my changes locally (see CONTRIBUTING.md)
 - [ ] I have updated `CHANGELOG.md` under `[Unreleased]`
-- [ ] If adding a new command, I have added it to both `.claude/cortex/commands/` and `.claude/commands/`
+- [ ] If adding a new command, I have added it to `.cortex/commands/` and updated `install.sh` to copy it to `.claude/commands/` and `.opencode/commands/`
 - [ ] If changing MAP.md format, I have updated `cortex-init.md` and `cortex-update.md`
 - [ ] Bash scripts pass `bash -n` syntax check
 

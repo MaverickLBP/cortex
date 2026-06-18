@@ -1,9 +1,9 @@
 # CORTEX — Knowledge layer for AI agents
 
 **A dynamic knowledge system for AI coding assistants.**  
-Zero dependencies. Markdown + bash. Works with Claude Code, OpenCode, and any agent that reads `CLAUDE.md`.
+Zero dependencies. Markdown + bash. Native enforcement for Claude Code and OpenCode.
 
-CORTEX lives in `.claude/cortex/` and provides your agent with a complete, living map of the project — what every folder contains, what each file does, and where things belong.
+CORTEX lives in `.cortex/` and provides your agent with a complete, living map of the project — what every folder contains, what each file does, and where things belong. It uses each agent's native mechanisms to guarantee the knowledge is loaded at every session start.
 
 ---
 
@@ -11,20 +11,36 @@ CORTEX lives in `.claude/cortex/` and provides your agent with a complete, livin
 
 ```
 project/
-├── CLAUDE.md                    ← "This project uses CORTEX"
-└── .claude/
-    └── cortex/
-        ├── SYSTEM.md            ← Agent behaviour instructions (do not edit)
-        ├── MAP.md               ← Knowledge map (auto-generated + maintained)
-        ├── commands/
-        │   ├── cortex-init.md       ← First-run project scanner
-        │   ├── cortex-update.md     ← Incremental map updater
-        │   └── cortex-view-map.md   ← View map command
-        └── scripts/
-            └── cortex-init.sh       ← Tree scanner (one-time setup)
+├── .cortex/                     ← Agent-agnostic knowledge (always committed)
+│   ├── SYSTEM.md                ← Agent behaviour instructions (do not edit)
+│   ├── MAP.md                   ← Knowledge map (auto-generated + maintained)
+│   ├── commands/                ← Command templates (copied to agent dirs by installer)
+│   │   ├── cortex-init.md
+│   │   ├── cortex-update.md
+│   │   └── cortex-view-map.md
+│   └── scripts/
+│       └── cortex-init.sh       ← Tree scanner
+│
+├── .claude/                     ← Claude Code only
+│   ├── settings.json            ← Registers cortex-session.sh hook (commit this)
+│   ├── hooks/
+│   │   └── cortex-session.sh   ← Injects SYSTEM.md + MAP.md at session start
+│   └── commands/               ← Slash commands for Claude Code
+│
+├── .opencode/                   ← OpenCode only
+│   └── commands/               ← Slash commands for OpenCode
+│
+└── opencode.json                ← OpenCode only: auto-loads SYSTEM.md + MAP.md
 ```
 
 **MAP.md** is the heart of CORTEX. It documents every directory and every file in the project — including a **Tech Stack** table with detected technologies and versions. The agent consults it to find what it needs and knows exactly where to create new files based on the project's conventions.
+
+### Enforcement mechanism
+
+- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) injects SYSTEM.md content and the order to load MAP.md as `additionalContext` — no passive CLAUDE.md needed. The hook also supports workspace mode (see below).
+- **OpenCode**: `opencode.json` → `instructions` auto-loads `.cortex/SYSTEM.md` and `.cortex/MAP.md` at every session start.
+
+Both agents use `/cortex-init`, `/cortex-update`, and `/cortex-view-map` as slash commands.
 
 ---
 
@@ -32,42 +48,34 @@ project/
 
 ### 1. Install CORTEX in your project
 
-Install in the current directory:
+Install in the current directory (interactive — asks which agent to configure):
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh | bash
 ```
 
-Or specify a project path directly:
+Or specify a project path and agent directly:
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh) /path/to/project
+bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh) --agent claude /path/to/project
+bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh) --agent opencode /path/to/project
+bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install.sh) --agent both /path/to/project
 ```
 
-With no arguments, `install.sh` prompts for the project path interactively. Use `--source` to install from a local copy (no download):
+From a local copy (no download):
 
 ```bash
-bash install.sh --source /path/to/cortex /path/to/project
+bash install.sh --source /path/to/cortex --agent claude /path/to/project
 ```
 
-Or copy the `.claude/cortex/` directory manually into your project and add this section to `CLAUDE.md`:
+**Migrating from v3?** The installer detects the old `.claude/cortex/` layout and automatically moves the knowledge to `.cortex/` (MAP.md is preserved).
 
-```markdown
-# CORTEX — Project
-
-This project uses **CORTEX** as its knowledge layer.
-
-## Session start
-At session start, you MUST load `.claude/cortex/SYSTEM.md`.
-It contains mandatory system instructions and defines the project knowledge map (MAP.md).
-Follow all instructions within — this is required before any task execution.
-```
+**After installing for Claude Code:** commit `.claude/settings.json` — it registers the hook that enforces CORTEX at session start. Per-user overrides go in `.claude/settings.local.json` (gitignored).
 
 ### 2. Generate the knowledge map
 
 ```
-/cortex-init          (Claude Code)
-run cortex-init       (OpenCode / any agent)
+/cortex-init
 ```
 
 The agent scans the entire project, detects the tech stack, and builds MAP.md automatically.
@@ -75,8 +83,7 @@ The agent scans the entire project, detects the tech stack, and builds MAP.md au
 ### 3. Update the map as the project evolves
 
 ```
-/cortex-update        (Claude Code)
-run cortex-update     (OpenCode / any agent)
+/cortex-update
 ```
 
 Unlike `cortex-init`, this command **preserves existing content** — it only adds new entries, removes deleted ones, and detects missing sections (e.g. Tech Stack). Run it after adding, moving, or removing files.
@@ -84,15 +91,13 @@ Unlike `cortex-init`, this command **preserves existing content** — it only ad
 ### 4. View the map anytime
 
 ```
-/cortex-view-map      (Claude Code)
-run cortex-view-map   (OpenCode / any agent)
+/cortex-view-map
+/cortex-view-map src/api    ← filter by path or keyword
 ```
 
-You can filter by section: `run cortex-view-map src/api`
+### 5. Workspace bridge (multi-project, Claude Code only)
 
-### 5. Workspace bridge (multi-project)
-
-If you work with a VS Code multi-root workspace (`.code-workspace`), generate a bridge `CLAUDE.md` that routes context to each project's CORTEX:
+If you work with a VS Code multi-root workspace (`.code-workspace`), install the workspace bridge to enable workspace mode in the hook:
 
 ```bash
 bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install-workspace-bridge.sh) --file workspace.code-workspace
@@ -104,7 +109,9 @@ Or from a local copy:
 bash install-workspace-bridge.sh --file /path/to/workspace.code-workspace
 ```
 
-Run without arguments for interactive mode. The bridge shows CORTEX status per project and instructs the agent to load the correct `SYSTEM.md` based on context.
+This creates a `.cortex-workspace.json` marker at the workspace root. The `cortex-session.sh` hook in each project detects it and enters workspace mode — injecting a list of all CORTEX-enabled projects and ordering the agent to load the MAP.md of whichever project is being worked on.
+
+> **Note:** Workspace mode is activated by the hook in the primary cwd project. Open your session from a project that has CORTEX installed for Claude Code.
 
 ---
 
@@ -112,8 +119,8 @@ Run without arguments for interactive mode. The bridge shows CORTEX status per p
 
 | Resource | Description |
 |----------|-------------|
-| [`install.sh`](./install.sh) | Install CORTEX in a single project (interactive or direct path) |
-| [`install-workspace-bridge.sh`](./install-workspace-bridge.sh) | Generate a multi-project workspace bridge from `.code-workspace` |
+| [`install.sh`](./install.sh) | Install CORTEX in a single project (agent selection, migration) |
+| [`install-workspace-bridge.sh`](./install-workspace-bridge.sh) | Generate `.cortex-workspace.json` for multi-project workspaces (Claude Code) |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history following Keep a Changelog |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to report bugs, suggest features, and submit PRs |
 | [docs/](./docs/) | Web landing page (GitHub Pages) |
@@ -123,9 +130,8 @@ Run without arguments for interactive mode. The bridge shows CORTEX status per p
 
 ## Compatibility
 
-- **Claude Code** — Full support (slash commands `/cortex-init`, `/cortex-update`, `/cortex-view-map`)
-- **OpenCode** — Full support (`run cortex-init`, `run cortex-update`, `run cortex-view-map`)
-- **Any agent that reads CLAUDE.md** — Full support
+- **Claude Code** — Full support via `SessionStart` hook + slash commands
+- **OpenCode** — Full support via `opencode.json` instructions + slash commands
 
 ---
 

@@ -7,7 +7,7 @@
 # The agent reads this output and builds MAP.md.
 #
 # Usage:
-#   bash .claude/cortex/scripts/cortex-init.sh
+#   bash .cortex/scripts/cortex-init.sh
 # ──────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -21,7 +21,7 @@ for dir in $EXCLUDE_DIRS; do
 done
 
 # ── Get project root ──────────────────────────────────
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"

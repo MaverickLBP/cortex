@@ -1,7 +1,7 @@
 # CORTEX — System Instructions
 
 > System file — **do not modify manually.**
-> Version: 3.1.0
+> Version: 4.0.0
 > Knowledge layer for AI coding agents.
 
 ---
@@ -11,7 +11,7 @@
 CORTEX is built around a single file: **MAP.md**.
 
 - `MAP.md` is the project's knowledge map — a complete directory tree where **every folder and file is documented** with its purpose.
-- The agent MUST load `MAP.md` at session start and keep it in context.
+- The agent MUST load `.cortex/MAP.md` at session start and keep it in context.
 - MAP.md is the **single source of truth** for project structure. Before searching or creating any file, consult MAP.md first.
 
 ## 2. How to use MAP.md
@@ -51,10 +51,10 @@ Updates happen **silently** as part of normal work. No need to announce them —
 
 When run for the first time in a project:
 
-**`/cortex-init`** (Claude Code) or **"run cortex-init"** (any agent)
+**`/cortex-init`** (Claude Code and OpenCode)
 
 Procedure:
-1. Execute `.claude/cortex/scripts/cortex-init.sh` to generate the raw directory tree
+1. Execute `.cortex/scripts/cortex-init.sh` to generate the raw directory tree
 2. Detect the project's tech stack (package.json, go.mod, Dockerfile, etc.)
 3. Walk through every directory in the output, exploring files and documenting their purpose
 4. Write the complete MAP.md with Tech Stack table + directory entries
@@ -64,7 +64,7 @@ Procedure:
 
 When the project structure changes or the MAP.md format evolves:
 
-**`/cortex-update`** (Claude Code) or **"run cortex-update"** (any agent)
+**`/cortex-update`** (Claude Code and OpenCode)
 
 Unlike `cortex-init`, this command **preserves all existing content** and only adds, removes, or updates what has changed. Use it for:
 - New files or directories added
@@ -76,7 +76,7 @@ Unlike `cortex-init`, this command **preserves all existing content** and only a
 
 To display the current knowledge map at any time:
 
-**`/cortex-view-map`** (Claude Code) or **"run cortex-view-map"** (any agent)
+**`/cortex-view-map`** (Claude Code and OpenCode)
 
 With optional filter: `/cortex-view-map src/api` to show only a specific section.
 
@@ -84,7 +84,7 @@ The agent reads MAP.md and presents it to the user in a readable format.
 
 ## 5. Knowledge sharing
 
-- MAP.md and all CORTEX files live in `.claude/cortex/` — they are part of the project
+- MAP.md and all CORTEX files live in `.cortex/` — they are part of the project
 - **Commit MAP.md changes** alongside related code changes
 - When another developer starts a session, their agent loads the same MAP.md — knowledge is shared via git
 - CORTEX files are normal project files. They appear in pull requests, code review, and history
@@ -92,18 +92,33 @@ The agent reads MAP.md and presents it to the user in a readable format.
 ## 6. Project structure
 
 ```
-.claude/
-└── cortex/
-    ├── SYSTEM.md          ← This file. Behaviour instructions. Do not edit.
-    ├── MAP.md             ← Knowledge map. The only file you edit regularly.
-    ├── commands/
-    │   ├── cortex-init.md       ← First-run project scanner
-    │   ├── cortex-update.md     ← Maintenance updater (preserves content)
-    │   └── cortex-view-map.md   ← View map command
-    └── scripts/
-        └── cortex-init.sh       ← Tree scanner (optional, one-time setup)
+.cortex/                       ← CORTEX knowledge (agent-agnostic, always committed)
+├── SYSTEM.md                  ← This file. Behaviour instructions. Do not edit.
+├── MAP.md                     ← Knowledge map. The only file you edit regularly.
+├── commands/
+│   ├── cortex-init.md         ← First-run project scanner
+│   ├── cortex-update.md       ← Maintenance updater (preserves content)
+│   └── cortex-view-map.md     ← View map command
+└── scripts/
+    └── cortex-init.sh         ← Tree scanner
+
+.claude/                       ← Claude Code only (when installed for Claude)
+├── settings.json              ← SessionStart hook → .claude/hooks/cortex-session.sh
+├── hooks/
+│   └── cortex-session.sh      ← Injects SYSTEM.md + MAP.md load order at session start
+└── commands/                  ← Slash commands (cortex-init.md, cortex-update.md, cortex-view-map.md)
+
+.opencode/                     ← OpenCode only (when installed for OpenCode)
+└── commands/                  ← Slash commands (cortex-init.md, cortex-update.md, cortex-view-map.md)
+
+opencode.json                  ← OpenCode only: instructions field loads SYSTEM.md + MAP.md
 ```
 
 ## 7. Compatibility
 
-CORTEX v3 works with **Claude Code** and **OpenCode**. Both read CLAUDE.md, follow the reference to SYSTEM.md, and load the instructions. No platform-specific features are required.
+CORTEX v4 supports **Claude Code** and **OpenCode** using their native enforcement mechanisms:
+
+- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) re-injects SYSTEM.md content and the order to load MAP.md as `additionalContext` — no passive CLAUDE.md needed.
+- **OpenCode**: `opencode.json` → `instructions` loads `.cortex/SYSTEM.md` and `.cortex/MAP.md` at every session start automatically.
+
+Both agents use `/cortex-init`, `/cortex-update`, and `/cortex-view-map` as slash commands.

@@ -1,14 +1,14 @@
+---
+description: Display the current project knowledge map (MAP.md).
+---
+
 # cortex-view-map — View the knowledge map
 
 Display the current project knowledge map (MAP.md) in a readable format.
 
-**Invocation:**
-- Claude Code: `/cortex-view-map`
-- OpenCode / Any agent: "run cortex-view-map"
-
 With optional filter:
 - `/cortex-view-map src/api` — show only the section for a specific directory
-- `run cortex-view-map database` — filter by keyword or path
+- `/cortex-view-map database` — filter by keyword or path
 
 ---
 
@@ -16,7 +16,7 @@ With optional filter:
 
 ### Without filter
 
-Read `.claude/cortex/MAP.md` and present its contents to the user. Format it cleanly, preserving the directory structure, file lists, and descriptions.
+Read `.cortex/MAP.md` and present its contents to the user. Format it cleanly, preserving the directory structure, file lists, and descriptions.
 
 ### With filter
 

@@ -1,6 +1,10 @@
+---
+description: Update the knowledge map after project structure changes. Preserves existing content.
+---
+
 # cortex-update — Update the knowledge map
 
-Updates `.claude/cortex/MAP.md` when the project structure changes or when the MAP.md format evolves. Unlike `cortex-init`, this command **preserves all existing content** and only adds, removes, or updates what has changed.
+Updates `.cortex/MAP.md` when the project structure changes or when the MAP.md format evolves. Unlike `cortex-init`, this command **preserves all existing content** and only adds, removes, or updates what has changed.
 
 Run this when:
 - New files or directories are added to the project
@@ -8,17 +12,13 @@ Run this when:
 - The MAP.md format gains new sections (e.g. Tech Stack, Architecture, etc.)
 - You want to refresh the map without losing custom notes
 
-**Invocation:**
-- Claude Code: `/cortex-update`
-- OpenCode / Any agent: "run cortex-update"
-
 ---
 
 ## Procedure
 
 ### Step 1 — Read existing MAP.md
 
-Read the current `.claude/cortex/MAP.md` and identify:
+Read the current `.cortex/MAP.md` and identify:
 1. All existing sections (Tech Stack, directory entries, Notes, etc.)
 2. The current format/template being used
 3. Any custom content the user has added
@@ -28,7 +28,7 @@ Read the current `.claude/cortex/MAP.md` and identify:
 Execute the scanner script:
 
 ```bash
-bash .claude/cortex/scripts/cortex-init.sh
+bash .cortex/scripts/cortex-init.sh
 ```
 
 The script prints a complete directory tree of the project (excluding `.git`, `node_modules`, and other common ignored directories).
@@ -54,7 +54,7 @@ For each missing section:
 
 ### Step 5 — Write updated MAP.md
 
-Write the updated `.claude/cortex/MAP.md`:
+Write the updated `.cortex/MAP.md`:
 - Update the generation date in the header
 - Preserve all existing Notes and custom content
 - Add new entries for new files/directories

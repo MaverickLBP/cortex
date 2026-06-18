@@ -4,9 +4,10 @@
 # Installer for a single project
 #
 # Usage:
-#   bash install.sh                           # Interactive (prompts for project path)
-#   bash install.sh /path/to/project           # Install in specified project
-#   bash install.sh --source /path/to/cortex /path/to/target
+#   bash install.sh                                    # Interactive
+#   bash install.sh /path/to/project                   # Install in specified project
+#   bash install.sh --agent claude|opencode|both [path]
+#   bash install.sh --source /path/to/cortex [--agent ...] [path]
 # ──────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -15,6 +16,7 @@ REPO_URL="https://github.com/MaverickLBP/cortex.git"
 BRANCH="main"
 SOURCE_DIR=""
 TARGET=""
+AGENT=""   # claude | opencode | both (empty = ask)
 
 # ── Parse arguments ───────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -23,11 +25,16 @@ while [ $# -gt 0 ]; do
       SOURCE_DIR="$2"
       shift 2
       ;;
+    --agent)
+      AGENT="$2"
+      shift 2
+      ;;
     --help|-h)
       echo "Usage:"
-      echo "  bash install.sh                           # Interactive (prompts for path)"
-      echo "  bash install.sh /path/to/project           # Install in specified project"
-      echo "  bash install.sh --source /path/to/cortex /path/to/target"
+      echo "  bash install.sh                                   # Interactive"
+      echo "  bash install.sh /path/to/project                  # Install in specified project"
+      echo "  bash install.sh --agent claude|opencode|both [path]"
+      echo "  bash install.sh --source /path/to/cortex [--agent ...] [path]"
       exit 0
       ;;
     *)
@@ -39,81 +46,89 @@ done
 
 # ── Colours ───────────────────────────────────────────
 if [ -t 1 ]; then
-  GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
+  GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 else
-  GREEN=''; CYAN=''; YELLOW=''; NC=''
+  GREEN=''; CYAN=''; YELLOW=''; RED=''; NC=''
 fi
 
 ok()     { echo -e "  ${GREEN}✔${NC} $1"; }
 info()   { echo -e "  ${CYAN}→${NC} $1"; }
 warn()   { echo -e "  ${YELLOW}⚠${NC} $1"; }
+err()    { echo -e "  ${RED}✖${NC} $1"; }
 prompt() { echo -e -n "  ${CYAN}?${NC} $1 "; }
 
 # ── Helpers ────────────────────────────────────────────
 
 copy_file() {
   local src="$1" dst="$2"
-  if [ -f "$src" ]; then
-    cp "$src" "$dst"
-    return 0
-  fi
+  [ -f "$src" ] && cp "$src" "$dst" && return 0
   return 1
 }
 
-# ── CLAUDE.md setup ────────────────────────────────────
-
-setup_claude_md() {
-  local target="$1"
-  local clauderc="$target/CLAUDE.md"
-
-  if [ -f "$clauderc" ] && grep -q "## Session start" "$clauderc" 2>/dev/null; then
-    warn "CLAUDE.md already has CORTEX instructions — not modified"
-    return 0
+# Idempotent jq merge: add key=value to a JSON object file.
+# Creates the file with {} if it doesn't exist.
+json_set() {
+  local file="$1" key="$2" value="$3"
+  local tmp
+  tmp="$(mktemp)"
+  if [ ! -f "$file" ]; then
+    echo '{}' > "$file"
   fi
-
-  {
-    echo "# CORTEX — Project"
-    echo ""
-    echo "This project uses **CORTEX** as its knowledge layer."
-    echo ""
-    echo "## Session start"
-    echo "At session start, you MUST load \`.claude/cortex/SYSTEM.md\`."
-    echo "It contains mandatory system instructions and defines the project knowledge map (MAP.md)."
-    echo "Follow all instructions within — this is required before any task execution."
-  } >> "$clauderc"
-  ok "CLAUDE.md configured with CORTEX instructions"
+  jq --argjson val "$value" ".\"$key\" = \$val" "$file" > "$tmp" && mv "$tmp" "$file"
 }
 
-# ── Install ────────────────────────────────────────────
+# Idempotent: add a string to a JSON array at key, no duplicates.
+json_array_add() {
+  local file="$1" key="$2" item="$3"
+  local tmp
+  tmp="$(mktemp)"
+  if [ ! -f "$file" ]; then
+    echo '{}' > "$file"
+  fi
+  jq --arg item "$item" --arg key "$key" \
+    'if (.[$key] | type) == "array"
+     then if (.[$key] | index($item)) == null then .[$key] += [$item] else . end
+     else .[$key] = [$item]
+     end' \
+    "$file" > "$tmp" && mv "$tmp" "$file"
+}
 
-install_cortex() {
+# ── Migration: .claude/cortex/ → .cortex/ ─────────────
+
+migrate_old_cortex() {
   local target="$1"
-  local src="$2"
-  local project_name
-  project_name="$(basename "$target")"
+  local old="$target/.claude/cortex"
 
-  echo ""
-  info "Installing CORTEX in ${CYAN}$project_name${NC}"
-  echo ""
+  [ -f "$old/SYSTEM.md" ] || return 0
+  [ -d "$target/.cortex" ] && return 0   # already migrated
 
-  target="$(cd "$target" 2>/dev/null && pwd)" || {
-    echo "  Error: '$target' is not a valid directory."
-    exit 1
-  }
+  warn "Detected old CORTEX layout (.claude/cortex/) — migrating to .cortex/"
+  mkdir -p "$target/.cortex/scripts"
 
-  # Create directories
-  mkdir -p "$target/.claude/cortex/commands"
-  mkdir -p "$target/.claude/cortex/scripts"
-  mkdir -p "$target/.claude/commands"
-  ok "Created directory structure"
+  # Move knowledge files; preserve MAP.md
+  mv "$old/SYSTEM.md" "$target/.cortex/SYSTEM.md"
+  [ -f "$old/MAP.md" ] && mv "$old/MAP.md" "$target/.cortex/MAP.md"
+  [ -d "$old/scripts" ] && cp -r "$old/scripts/." "$target/.cortex/scripts/"
 
-  # Core files
-  copy_file "$src/.claude/cortex/SYSTEM.md" "$target/.claude/cortex/SYSTEM.md" && \
+  # Remove old cortex dir (commands there are stale)
+  rm -rf "$old"
+  ok "Migrated knowledge to .cortex/"
+}
+
+# ── Install .cortex/ knowledge ─────────────────────────
+
+install_knowledge() {
+  local target="$1" src="$2"
+
+  mkdir -p "$target/.cortex/scripts"
+  ok "Created .cortex/"
+
+  copy_file "$src/.cortex/SYSTEM.md" "$target/.cortex/SYSTEM.md" && \
     ok "Installed SYSTEM.md" || warn "SYSTEM.md not found in source"
 
-  local map_file="$target/.claude/cortex/MAP.md"
+  local map_file="$target/.cortex/MAP.md"
   if [ ! -f "$map_file" ]; then
-    if copy_file "$src/.claude/cortex/MAP.md" "$map_file"; then
+    if copy_file "$src/.cortex/MAP.md" "$map_file"; then
       ok "Created MAP.md (template)"
     else
       cat > "$map_file" << 'EOM'
@@ -136,34 +151,143 @@ EOM
     warn "MAP.md exists — preserved (not overwritten)"
   fi
 
-  # Commands
-  copy_file "$src/.claude/cortex/commands/cortex-init.md" \
-    "$target/.claude/cortex/commands/cortex-init.md" && \
-    ok "Installed cortex-init" || warn "cortex-init.md not found"
-  copy_file "$src/.claude/cortex/commands/cortex-update.md" \
-    "$target/.claude/cortex/commands/cortex-update.md" && \
-    ok "Installed cortex-update" || warn "cortex-update.md not found"
-  copy_file "$src/.claude/cortex/commands/cortex-view-map.md" \
-    "$target/.claude/cortex/commands/cortex-view-map.md" && \
-    ok "Installed cortex-view-map" || warn "cortex-view-map.md not found"
+  if copy_file "$src/.cortex/scripts/cortex-init.sh" "$target/.cortex/scripts/cortex-init.sh"; then
+    chmod +x "$target/.cortex/scripts/cortex-init.sh"
+    ok "Installed cortex-init.sh"
+  else
+    warn "cortex-init.sh not found in source"
+  fi
+}
 
-  # Scripts
-  if copy_file "$src/.claude/cortex/scripts/cortex-init.sh" \
-    "$target/.claude/cortex/scripts/cortex-init.sh"; then
-    chmod +x "$target/.claude/cortex/scripts/cortex-init.sh"
-    ok "Installed cortex-init script"
+# ── Install for Claude Code ────────────────────────────
+
+install_claude() {
+  local target="$1" src="$2"
+
+  mkdir -p "$target/.claude/hooks" "$target/.claude/commands"
+
+  # Hook
+  if copy_file "$src/.claude/hooks/cortex-session.sh" "$target/.claude/hooks/cortex-session.sh"; then
+    chmod +x "$target/.claude/hooks/cortex-session.sh"
+    ok "Installed cortex-session.sh hook"
+  else
+    warn "cortex-session.sh not found in source"
   fi
 
-  # Slash commands (for Claude Code UI)
-  copy_file "$src/.claude/cortex/commands/cortex-init.md" \
-    "$target/.claude/commands/cortex-init.md" &>/dev/null || true
-  copy_file "$src/.claude/cortex/commands/cortex-update.md" \
-    "$target/.claude/commands/cortex-update.md" &>/dev/null || true
-  copy_file "$src/.claude/cortex/commands/cortex-view-map.md" \
-    "$target/.claude/commands/cortex-view-map.md" &>/dev/null || true
+  # settings.json — merge hook (idempotent)
+  local settings="$target/.claude/settings.json"
+  local hook_cmd="bash .claude/hooks/cortex-session.sh"
+  local hook_entry
+  hook_entry='{"type":"command","command":"bash .claude/hooks/cortex-session.sh","statusMessage":"Loading CORTEX knowledge..."}'
 
-  # CLAUDE.md
-  setup_claude_md "$target"
+  if command -v jq >/dev/null 2>&1; then
+    if [ ! -f "$settings" ]; then
+      echo '{}' > "$settings"
+    fi
+    # Add hook only if not already present
+    local tmp
+    tmp="$(mktemp)"
+    jq --argjson entry "$hook_entry" '
+      .hooks.SessionStart //= [] |
+      if (.hooks.SessionStart | map(select(.hooks != null)) | length) > 0
+      then .
+      else
+        .hooks.SessionStart += [{"hooks": [$entry]}]
+      end
+    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
+    ok "Merged SessionStart hook into .claude/settings.json"
+  else
+    warn "jq not found — skipping settings.json merge (install jq and re-run)"
+  fi
+
+  # Commands
+  for cmd in cortex-init cortex-update cortex-view-map; do
+    if copy_file "$src/.cortex/commands/${cmd}.md" "$target/.claude/commands/${cmd}.md"; then
+      ok "Installed ${cmd} command (Claude Code)"
+    else
+      warn "${cmd}.md not found in source"
+    fi
+  done
+
+  # .gitignore — track settings.json, ignore settings.local.json
+  local gitignore="$target/.gitignore"
+  if [ -f "$gitignore" ]; then
+    # Remove old blanket ignore of .claude/settings.json if present
+    if grep -q "^\.claude/settings\.json$" "$gitignore" 2>/dev/null; then
+      sed -i '/^\.claude\/settings\.json$/d' "$gitignore"
+      warn "Removed .claude/settings.json from .gitignore (it should now be committed)"
+    fi
+    if ! grep -q "\.claude/settings\.local\.json" "$gitignore" 2>/dev/null; then
+      echo ".claude/settings.local.json" >> "$gitignore"
+      ok "Added .claude/settings.local.json to .gitignore"
+    fi
+  fi
+}
+
+# ── Install for OpenCode ───────────────────────────────
+
+install_opencode() {
+  local target="$1" src="$2"
+
+  mkdir -p "$target/.opencode/commands"
+
+  # opencode.json — merge instructions (idempotent)
+  local oc_json="$target/opencode.json"
+  if command -v jq >/dev/null 2>&1; then
+    json_array_add "$oc_json" "instructions" ".cortex/SYSTEM.md"
+    json_array_add "$oc_json" "instructions" ".cortex/MAP.md"
+    ok "Merged CORTEX instructions into opencode.json"
+  else
+    warn "jq not found — skipping opencode.json merge (install jq and re-run)"
+  fi
+
+  # Commands
+  for cmd in cortex-init cortex-update cortex-view-map; do
+    if copy_file "$src/.cortex/commands/${cmd}.md" "$target/.opencode/commands/${cmd}.md"; then
+      ok "Installed ${cmd} command (OpenCode)"
+    else
+      warn "${cmd}.md not found in source"
+    fi
+  done
+}
+
+# ── Main installer ─────────────────────────────────────
+
+install_cortex() {
+  local target="$1"
+  local src="$2"
+  local agent="$3"
+  local project_name
+  project_name="$(basename "$target")"
+
+  echo ""
+  info "Installing CORTEX in ${CYAN}$project_name${NC}"
+  echo ""
+
+  target="$(cd "$target" 2>/dev/null && pwd)" || {
+    err "Directory not found: '$target'"
+    exit 1
+  }
+
+  # Migration
+  migrate_old_cortex "$target"
+
+  # Knowledge (always)
+  install_knowledge "$target" "$src"
+
+  # Agent-specific
+  case "$agent" in
+    claude)
+      install_claude "$target" "$src"
+      ;;
+    opencode)
+      install_opencode "$target" "$src"
+      ;;
+    both)
+      install_claude "$target" "$src"
+      install_opencode "$target" "$src"
+      ;;
+  esac
 }
 
 # ───────────────────────────────────────────────────────
@@ -177,29 +301,54 @@ echo "  ────────────────────────
 # Resolve target
 if [ -z "$TARGET" ]; then
   if [ -t 0 ]; then
-    # Interactive terminal — prompt the user
     echo ""
-    prompt "Enter project path:"
+    prompt "Enter project path (leave blank for current directory):"
     read -r TARGET
-    if [ -z "$TARGET" ] || [ ! -d "$TARGET" ]; then
-      echo "  Error: '$TARGET' is not a valid directory."
+    [ -z "$TARGET" ] && TARGET="."
+    if [ ! -d "$TARGET" ]; then
+      err "Directory not found: '$TARGET'"
       exit 1
     fi
   else
-    # Non-interactive (piped stdin) — default to current directory
     TARGET="."
-    echo ""
     info "No project path specified; using current directory: $(pwd)"
   fi
 fi
 
 TARGET="$(cd "$TARGET" && pwd)"
 
+# Resolve agent
+if [ -z "$AGENT" ]; then
+  if [ -t 0 ]; then
+    echo ""
+    echo "  Which agent(s) to configure?"
+    echo "    1) Claude Code"
+    echo "    2) OpenCode"
+    echo "    3) Both"
+    prompt "Enter choice [1/2/3]:"
+    read -r choice
+    case "$choice" in
+      1) AGENT="claude" ;;
+      2) AGENT="opencode" ;;
+      3) AGENT="both" ;;
+      *) err "Invalid choice. Use 1, 2, or 3."; exit 1 ;;
+    esac
+  else
+    AGENT="claude"
+    info "Non-interactive mode: defaulting to Claude Code. Use --agent to override."
+  fi
+fi
+
+case "$AGENT" in
+  claude|opencode|both) ;;
+  *) err "Invalid --agent value: '$AGENT'. Use claude, opencode, or both."; exit 1 ;;
+esac
+
 # Resolve source
 if [ -n "$SOURCE_DIR" ]; then
   SRC="$SOURCE_DIR"
-  if [ ! -d "$SRC/.claude/cortex" ]; then
-    echo "  Error: '$SRC' does not contain .claude/cortex/"
+  if [ ! -d "$SRC/.cortex" ]; then
+    err "'$SRC' does not contain .cortex/"
     exit 1
   fi
   info "Using local source: $SRC"
@@ -207,7 +356,7 @@ else
   TMP_DIR=$(mktemp -d)
   info "Downloading CORTEX from $REPO_URL..."
   if ! git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$TMP_DIR" 2>/dev/null; then
-    echo "  Error downloading CORTEX. Check your connection."
+    err "Download failed. Check your connection."
     rm -rf "$TMP_DIR"
     exit 1
   fi
@@ -215,7 +364,7 @@ else
   ok "Downloaded"
 fi
 
-install_cortex "$TARGET" "$SRC"
+install_cortex "$TARGET" "$SRC" "$AGENT"
 
 # Cleanup
 if [ -n "${TMP_DIR:-}" ]; then
@@ -228,4 +377,5 @@ echo -e "  ${GREEN}✔ CORTEX installed in${NC} $TARGET"
 echo ""
 echo "  Next steps:"
 echo "    1. Run  /cortex-init  to generate the knowledge map"
-echo "    2. Run  /cortex-view-map  to see the map at any time"
+echo "    2. Commit .cortex/ and .claude/settings.json (if Claude Code)"
+echo "    3. Run  /cortex-view-map  to see the map at any time"

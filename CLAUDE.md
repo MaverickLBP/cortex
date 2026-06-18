@@ -3,6 +3,6 @@
 This project uses **CORTEX** as its knowledge layer.
 
 ## Session start
-At session start, you MUST load `.claude/cortex/SYSTEM.md`.
-It contains mandatory system instructions and defines the project knowledge map (MAP.md).
-Follow all instructions within — this is required before any task execution.
+Load `.cortex/SYSTEM.md` and `.cortex/MAP.md` at session start.
+Enforcement is handled by the `SessionStart` hook in `.claude/hooks/cortex-session.sh` (Claude Code)
+or the `instructions` field in `opencode.json` (OpenCode).

@@ -1,5 +1,5 @@
-# Personal agent overrides
-.claude/settings.json
+# Personal agent overrides (commit settings.json, ignore local overrides)
+.claude/settings.local.json
 
 # OS files
 .DS_Store
