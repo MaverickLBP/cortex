@@ -1,7 +1,7 @@
 # CORTEX — System Instructions
 
 > System file — **do not modify manually.**
-> Version: 4.0.0
+> Version: 4.1.0
 > Knowledge layer for AI coding agents.
 
 ---
@@ -46,6 +46,28 @@ MAP.md is **living documentation**. Update it when:
 | A new technology appears in the project | Add it to the Tech Stack table |
 
 Updates happen **silently** as part of normal work. No need to announce them — just keep MAP.md accurate.
+
+### 2.4 Active enforcement (reminders are not optional)
+
+Under Claude Code, CORTEX registers hooks that fire during the session:
+
+- A `PostToolUse` hook injects a reminder when you create a file the map does
+  not reference, delete a documented file with a local `rm`, or move/rename a
+  file with a local `mv` (a documented source whose entry is now stale, or a
+  new destination path the map doesn't list). Detection is local only —
+  `git rm`/`git mv` are not tracked; the map is kept in sync in reaction to
+  local filesystem changes, not git commands. The reminder fires at the exact
+  moment you make the change, because keeping MAP.md in sync is the
+  responsibility of whoever creates, deletes, or updates the file — not a later
+  pass. When you receive such a reminder, act on it immediately: update MAP.md
+  silently, or consciously decide the existing folder-level entry covers it.
+  Never ignore or defer these reminders.
+- A `SubagentStart` hook gives subagents a short CORTEX note automatically.
+
+Regardless of agent: when YOU dispatch subagents or delegate work that may
+create, delete, or rename project files, include in the dispatch prompt that
+this project uses CORTEX and that `.cortex/MAP.md` must be consulted for file
+placement and updated for structural changes.
 
 ## 3. The cortex-init command
 
@@ -105,7 +127,9 @@ The agent reads MAP.md and presents it to the user in a readable format.
 .claude/                       ← Claude Code only (when installed for Claude)
 ├── settings.json              ← SessionStart hook → .claude/hooks/cortex-session.sh
 ├── hooks/
-│   └── cortex-session.sh      ← Injects SYSTEM.md + MAP.md load order at session start
+│   ├── cortex-session.sh      ← Injects SYSTEM.md + MAP.md content at session start
+│   ├── cortex-file-change.sh  ← PostToolUse: reminds to update MAP.md on file creation/removal
+│   └── cortex-subagent.sh     ← SubagentStart: gives subagents CORTEX context
 └── commands/                  ← Slash commands (cortex-init.md, cortex-update.md, cortex-view-map.md)
 
 .opencode/                     ← OpenCode only (when installed for OpenCode)
@@ -118,7 +142,7 @@ opencode.json                  ← OpenCode only: instructions field loads SYSTE
 
 CORTEX v4 supports **Claude Code** and **OpenCode** using their native enforcement mechanisms:
 
-- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) re-injects SYSTEM.md content and the order to load MAP.md as `additionalContext` — no passive CLAUDE.md needed.
+- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) injects SYSTEM.md and MAP.md content at session start; `PostToolUse` and `SubagentStart` hooks provide mid-session enforcement (Claude Code only — OpenCode has no hook mechanism; it loads SYSTEM.md + MAP.md via `opencode.json → instructions` and relies on the instructions themselves for updates).
 - **OpenCode**: `opencode.json` → `instructions` loads `.cortex/SYSTEM.md` and `.cortex/MAP.md` at every session start automatically.
 
 Both agents use `/cortex-init`, `/cortex-update`, and `/cortex-view-map` as slash commands.

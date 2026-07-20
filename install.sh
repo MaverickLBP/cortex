@@ -144,13 +144,15 @@ install_claude() {
 
   mkdir -p "$target/.claude/hooks" "$target/.claude/commands"
 
-  # Hook
-  if copy_file "$src/.claude/hooks/cortex-session.sh" "$target/.claude/hooks/cortex-session.sh"; then
-    chmod +x "$target/.claude/hooks/cortex-session.sh"
-    ok "Installed cortex-session.sh hook"
-  else
-    warn "cortex-session.sh not found in source"
-  fi
+  # Hooks (session + active-enforcement)
+  for hook in cortex-session.sh cortex-file-change.sh cortex-subagent.sh; do
+    if copy_file "$src/.claude/hooks/$hook" "$target/.claude/hooks/$hook"; then
+      chmod +x "$target/.claude/hooks/$hook"
+      ok "Installed $hook hook"
+    else
+      warn "$hook not found in source"
+    fi
+  done
 
   # settings.json — merge hook (idempotent)
   local settings="$target/.claude/settings.json"
@@ -176,6 +178,44 @@ install_claude() {
       end
     ' "$settings" > "$tmp" && mv "$tmp" "$settings"
     ok "Merged SessionStart hook into .claude/settings.json"
+
+    # PostToolUse — file-change reminders (idempotent)
+    tmp="$(mktemp)"
+    jq '
+      .hooks.PostToolUse //= [] |
+      if (.hooks.PostToolUse // [] |
+          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-file-change.sh")) |
+          length) > 0
+      then .
+      else
+        .hooks.PostToolUse += [
+          {"matcher":"Write","hooks":[
+            {"type":"command","command":"bash .claude/hooks/cortex-file-change.sh"}
+          ]},
+          {"matcher":"Bash","hooks":[
+            {"type":"command","command":"bash .claude/hooks/cortex-file-change.sh","if":"Bash(rm *)"},
+            {"type":"command","command":"bash .claude/hooks/cortex-file-change.sh","if":"Bash(mv *)"}
+          ]}
+        ]
+      end
+    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
+    ok "Merged PostToolUse hooks into .claude/settings.json"
+
+    # SubagentStart — CORTEX note for subagents (idempotent)
+    tmp="$(mktemp)"
+    jq '
+      .hooks.SubagentStart //= [] |
+      if (.hooks.SubagentStart // [] |
+          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-subagent.sh")) |
+          length) > 0
+      then .
+      else
+        .hooks.SubagentStart += [{"hooks":[
+          {"type":"command","command":"bash .claude/hooks/cortex-subagent.sh"}
+        ]}]
+      end
+    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
+    ok "Merged SubagentStart hook into .claude/settings.json"
   else
     warn "jq not found — skipping settings.json merge (install jq and re-run)"
   fi

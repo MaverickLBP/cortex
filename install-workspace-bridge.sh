@@ -162,7 +162,7 @@ workspace_name="$(basename "$WS_FILE" .code-workspace)"
 cat > "$marker" << EOF
 {
   "cortex": true,
-  "version": "4.0.0",
+  "version": "4.1.0",
   "workspace": "${workspace_name}",
   "generated": "${generated}",
   "projects": ${projects_json}

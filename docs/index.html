@@ -137,8 +137,10 @@
               <i class="material-icons feature-icon purple-text text-accent-2">extension</i>
               <span class="card-title">Native Enforcement</span>
               <p>
-                Deep integration with Claude Code (SessionStart hook) and OpenCode
-                (<code>opencode.json</code> instructions). Knowledge loads at every session start.
+                Deep integration with Claude Code (SessionStart, PostToolUse, and
+                SubagentStart hooks) and OpenCode (<code>opencode.json</code> instructions).
+                Knowledge loads at every session start, and Claude Code agents get
+                active reminders to keep the map current.
               </p>
             </div>
           </div>
@@ -303,7 +305,7 @@
               <tr>
                 <td><strong>Claude Code</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td>SessionStart hook + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
+                <td>SessionStart, PostToolUse &amp; SubagentStart hooks + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
               </tr>
               <tr>
                 <td><strong>OpenCode</strong></td>

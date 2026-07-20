@@ -22,9 +22,11 @@ project/
 │       └── cortex-init.sh       ← Tree scanner
 │
 ├── .claude/                     ← Claude Code only
-│   ├── settings.json            ← Registers cortex-session.sh hook (commit this)
+│   ├── settings.json            ← Registers CORTEX hooks (commit this)
 │   ├── hooks/
-│   │   └── cortex-session.sh   ← Injects SYSTEM.md + MAP.md at session start
+│   │   ├── cortex-session.sh       ← SessionStart: injects SYSTEM.md + full MAP.md content
+│   │   ├── cortex-file-change.sh   ← PostToolUse: reminds to update MAP.md on file creation/removal
+│   │   └── cortex-subagent.sh      ← SubagentStart: gives subagents CORTEX context
 │   └── commands/               ← Slash commands for Claude Code
 │
 ├── .opencode/                   ← OpenCode only
@@ -37,10 +39,13 @@ project/
 
 ### Enforcement mechanism
 
-- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) injects SYSTEM.md content and the order to load MAP.md as `additionalContext` — no passive CLAUDE.md needed. The hook also supports workspace mode (see below).
+- **Claude Code**: three hooks provide active enforcement, no passive CLAUDE.md needed.
+  - `cortex-session.sh` (`SessionStart`) injects SYSTEM.md content and the **full content of MAP.md** as `additionalContext` — the agent doesn't need to read the file separately. The hook also supports workspace mode (see below).
+  - `cortex-file-change.sh` (`PostToolUse`) reminds the agent to update MAP.md the moment it creates a file the map doesn't reference, deletes a documented file with a local `rm`, or moves/renames a file with a local `mv`. Detection is local only — `git rm`/`git mv` are not tracked; the map is kept in sync in reaction to local filesystem changes, not git commands. The reminder reaches whoever made the change, at that moment — keeping the map in sync is the actor's responsibility, not a later pass. Silent for undocumented/scratch deletions, plain edits, excluded paths, and non-CORTEX directories.
+  - `cortex-subagent.sh` (`SubagentStart`) injects a short CORTEX note into subagents, which never receive SessionStart context on their own.
 - **OpenCode**: `opencode.json` → `instructions` auto-loads `.cortex/SYSTEM.md` and `.cortex/MAP.md` at every session start.
 
-Both agents use `/cortex-init`, `/cortex-update`, and `/cortex-view-map` as slash commands.
+Both agents use `/cortex-init`, `/cortex-update`, and `/cortex-view-map` as slash commands. Note: OpenCode has no hook mechanism, so it can't get an *active* reminder at the exact moment a file is created/deleted/moved the way Claude Code does. The same three situations are still covered, though — `SYSTEM.md` §2.3 ("Updating MAP.md") already lists them agent-agnostically, and since `opencode.json → instructions` reloads the full `SYSTEM.md` every session, that table is always in an OpenCode agent's context. The gap is the trigger mechanism (event-driven vs. standing instruction), not which situations call for a MAP.md update.
 
 ---
 
@@ -132,7 +137,7 @@ This creates a `.cortex-workspace.json` marker at the workspace root. The `corte
 
 | Agent | Enforcement | Commands |
 |---|---|---|
-| **Claude Code** | `SessionStart` hook injects SYSTEM.md + MAP.md at every session start | `/cortex-init`, `/cortex-update`, `/cortex-view-map` |
+| **Claude Code** | `SessionStart` hook injects SYSTEM.md + full MAP.md content; `PostToolUse` hook reminds to update MAP.md on file changes; `SubagentStart` hook briefs subagents | `/cortex-init`, `/cortex-update`, `/cortex-view-map` |
 | **OpenCode** | `opencode.json` → `instructions` auto-loads SYSTEM.md + MAP.md | `/cortex-init`, `/cortex-update`, `/cortex-view-map` |
 
 ---

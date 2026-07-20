@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] — 2026-07-20
+
+### Added
+- `.claude/hooks/cortex-file-change.sh` — PostToolUse hook: reminds the agent to
+  update MAP.md at the exact moment a new file is created that the map does not
+  reference, a documented file is deleted with a local `rm`, or a file is
+  moved/renamed with a local `mv` (documented source now stale, and/or a new
+  destination the map doesn't list). Detection is local only — `git rm`/`git mv`
+  are not tracked; the map is kept in sync in reaction to local filesystem
+  operations, not git commands. The `rm` reminder fires only when the deleted
+  path is referenced in MAP.md, so scratch/temp cleanup stays silent while
+  MAP.md never goes stale pointing at a file that no longer exists. Silent for
+  undocumented/scratch deletions, plain edits, excluded paths, and non-CORTEX
+  directories.
+- `.claude/hooks/cortex-subagent.sh` — SubagentStart hook: injects a short CORTEX
+  note into subagents (which never receive SessionStart context).
+- `tests/hooks-test.sh` — pipe-test harness covering all hooks and installer
+  registration (synthetic hook payloads; no live session required).
+
+### Changed
+- `cortex-session.sh` now injects the FULL content of MAP.md at session start
+  (single-project mode, and the cwd project in workspace mode) instead of only an
+  instruction to read it — bringing Claude Code to parity with OpenCode's
+  `instructions` mechanism.
+- `install.sh` registers the new PostToolUse and SubagentStart hooks (idempotent);
+  re-run it on installed projects to upgrade.
+- `SYSTEM.md` v4.1.0 — documents active enforcement (Claude Code-scoped) and adds
+  an agent-agnostic obligation to brief subagents about CORTEX when dispatching.
+
 ## [4.0.0] — 2026-06-18
 
 ### Breaking changes
@@ -87,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/MaverickLBP/cortex/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/MaverickLBP/cortex/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/MaverickLBP/cortex/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/MaverickLBP/cortex/compare/v2.0.0...v3.0.0

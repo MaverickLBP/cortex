@@ -67,7 +67,9 @@ _Claude Code agent configuration. Only present when CORTEX is installed for Clau
 
 ### 📁 .claude/hooks/
 
-- `cortex-session.sh` → **SessionStart hook template.** Reads `cwd` from the hook JSON payload, detects workspace mode (`.cortex-workspace.json` marker), and emits `additionalContext` with SYSTEM.md content + order to load MAP.md. Exit 0 silently if nothing applies or `jq` is missing.
+- `cortex-session.sh` → **SessionStart hook template.** Reads `cwd` from the hook JSON payload, detects workspace mode (`.cortex-workspace.json` marker), and emits `additionalContext` with SYSTEM.md content + the full content of MAP.md. Exit 0 silently if nothing applies or `jq` is missing.
+- `cortex-file-change.sh` → **PostToolUse hook template.** Reminds the agent to update MAP.md the moment it creates a new file the map doesn't reference, deletes a documented file with a local `rm`, or moves/renames a file with a local `mv` (git operations are not tracked — detection is local only). Silent for undocumented/scratch deletions, plain edits, excluded paths, and non-CORTEX directories — so the reminder always reaches the actor who made the change, at that moment.
+- `cortex-subagent.sh` → **SubagentStart hook template.** Injects a short CORTEX note into subagents, which never receive SessionStart context on their own.
 
 ### 📁 .claude/commands/
 
@@ -89,9 +91,20 @@ _Web landing page served via GitHub Pages. Static site — no build step, no run
 
 ---
 
+## 📁 tests/
+
+_Test harnesses for CORTEX scripts and hooks. No runtime dependencies beyond bash and jq._
+
+- `hooks-test.sh` → **Pipe-test harness for the Claude Code hooks.** Feeds synthetic hook JSON payloads to `cortex-session.sh`, `cortex-file-change.sh`, and `cortex-subagent.sh`, and checks installer hook registration. No live session required. Run: `bash tests/hooks-test.sh`.
+
+---
+
 ## Notes
 
 _Section reserved for technical decisions, gotchas and observations. Each entry dated._
 
 **2026-06-18 — v4.0.0 breaking change: knowledge moved from `.claude/cortex/` to `.cortex/`**
 Knowledge is now in `.cortex/` (agent-agnostic). Agent-specific config lives in `.claude/` (Claude Code) or `.opencode/` + `opencode.json` (OpenCode). Enforcement via native mechanisms: SessionStart hook (Claude Code) and `instructions` field (OpenCode). CLAUDE.md is no longer used for enforcement.
+
+**2026-07-20 — v4.1.0 active enforcement: PostToolUse + SubagentStart hooks added**
+`cortex-session.sh` now injects the full content of MAP.md (not just an instruction to read it), reaching parity with OpenCode's `instructions` mechanism. Two new Claude Code hooks add active enforcement with no OpenCode equivalent yet: `cortex-file-change.sh` (PostToolUse) reminds the agent to update MAP.md when it creates a file the map doesn't reference, deletes a documented file with a local `rm`, or moves/renames a file with a local `mv` (git operations are not tracked — detection is local only), and `cortex-subagent.sh` (SubagentStart) briefs subagents with a short CORTEX note since they don't receive SessionStart context. Covered by `tests/hooks-test.sh`.

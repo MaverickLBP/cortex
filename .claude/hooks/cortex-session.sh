@@ -60,16 +60,22 @@ if [ -n "$WS_ROOT" ]; then
   if [ -f "$CWD/.cortex/SYSTEM.md" ]; then
     SYSTEM_CONTENT="$(cat "$CWD/.cortex/SYSTEM.md" 2>/dev/null || true)"
   fi
+  MAP_CONTENT=""
+  if [ -f "$CWD/.cortex/MAP.md" ]; then
+    MAP_CONTENT="$(cat "$CWD/.cortex/MAP.md" 2>/dev/null || true)"
+  fi
 
   MSG="CORTEX WORKSPACE — mandatory startup sequence (no exceptions):\n\n"
   MSG="${MSG}This is a multi-project workspace. Projects with CORTEX:\n${project_list}\n"
   MSG="${MSG}REQUIRED ACTIONS:\n"
-  MSG="${MSG}1. Identify which project the user's task relates to.\n"
-  MSG="${MSG}2. Read that project's .cortex/MAP.md immediately and keep it in context.\n"
-  MSG="${MSG}3. If the project also has .cortex/SYSTEM.md, follow its instructions.\n"
-  MSG="${MSG}4. When the user switches projects, load the new project's MAP.md.\n"
+  MSG="${MSG}1. The current (cwd) project's MAP.md is injected below — keep it authoritative for the whole session.\n"
+  MSG="${MSG}2. When the task moves to a DIFFERENT project, read that project's .cortex/MAP.md at that moment and keep it in context.\n"
+  MSG="${MSG}3. If a project has .cortex/SYSTEM.md, follow its instructions.\n"
   if [ -n "$SYSTEM_CONTENT" ]; then
     MSG="${MSG}\nCurrent project (${CWD}) SYSTEM.md:\n\n${SYSTEM_CONTENT}"
+  fi
+  if [ -n "$MAP_CONTENT" ]; then
+    MSG="${MSG}\n\n--- Current project (${CWD}) MAP.md ---\n\n${MAP_CONTENT}"
   fi
 
   jq -n --arg ctx "$MSG" \
@@ -88,15 +94,17 @@ SYSTEM_CONTENT="$(cat "$SYSTEM_MD" 2>/dev/null || true)"
 [ -z "$SYSTEM_CONTENT" ] && exit 0
 
 MSG="CORTEX — mandatory startup sequence (no exceptions):\n\n"
-MSG="${MSG}1. Read .cortex/MAP.md NOW and keep it in context for the whole session.\n"
+MSG="${MSG}1. The project's knowledge map (.cortex/MAP.md) is injected below — keep it authoritative for the whole session.\n"
 MSG="${MSG}2. Follow all instructions in SYSTEM.md below.\n"
-MSG="${MSG}3. Before creating or locating any file, consult MAP.md first.\n"
-if [ -f "$MAP_MD" ]; then
-  MSG="${MSG}   MAP.md exists at: ${MAP_MD}\n"
-else
+MSG="${MSG}3. Before creating or locating any file, consult the map first.\n"
+if [ ! -f "$MAP_MD" ]; then
   MSG="${MSG}   MAP.md not yet generated — run /cortex-init to create it.\n"
 fi
 MSG="${MSG}\n--- SYSTEM.md ---\n\n${SYSTEM_CONTENT}"
+if [ -f "$MAP_MD" ]; then
+  MAP_CONTENT="$(cat "$MAP_MD" 2>/dev/null || true)"
+  [ -n "$MAP_CONTENT" ] && MSG="${MSG}\n\n--- MAP.md ---\n\n${MAP_CONTENT}"
+fi
 
 jq -n --arg ctx "$MSG" \
   '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$ctx}}' \
