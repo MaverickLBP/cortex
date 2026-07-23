@@ -20,86 +20,71 @@ Run this **once** when first setting up CORTEX in a project. For subsequent upda
 
 ## Procedure
 
-### Step 0 — Detect tech stack
+### Step 0 — Detect tech stack (best-effort cascade, never blocks)
 
-Before exploring directories, identify the project's technologies and versions:
+Detect technologies using a degrading cascade. Every level is optional; nothing here blocks map generation. Tag each entry with its source.
 
-1. Check package managers and lock files: `package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lockb`
-2. Check language/runtime files: `go.mod`, `Cargo.toml`, `requirements.txt`, `pyproject.toml`, `Gemfile`, `pom.xml`, `build.gradle`, `composer.json`
-3. Check runtime/version files: `.nvmrc`, `.node-version`, `.python-version`, `.ruby-version`, `Dockerfile`, `docker-compose.yml`
-4. Check framework/config files: `tsconfig.json`, `tailwind.config.*`, `vite.config.*`, `next.config.*`, `webpack.config.*`, `Cargo.toml`, `rust-toolchain.toml`
-5. Extract **package name and version** from the most relevant dependencies (frameworks, runtimes, major libraries)
+1. **Known manifest** — parse recognised manifests (`package.json`, `pom.xml`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `composer.json`, `Gemfile`, `pubspec.yaml`) for name + key deps + versions.
+2. **Unknown manifest** — if a manifest-looking file has no parser (`mix.exs`, `deno.json`, `build.zig`, `*.csproj`), record that it exists without deep parsing.
+3. **Extension histogram (universal floor)** — run:
+   ```bash
+   bash .cortex/scripts/cortex-scan.sh --files | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -15
+   ```
+   Dominant extensions reveal the language(s) on any repo. This guarantees the Tech Stack table is never empty.
+4. **Toolchain signals** — `.nvmrc`, `.tool-versions`, `.ruby-version`, Dockerfile `FROM`, CI files — to refine versions.
 
-### Step 1 — Generate the directory tree
+Unknown version → `latest`/`N/A`. Never treat missing detection as an error.
 
-Execute the scanner script:
+### Step 1 — Partition into areas
+
+Run the area partitioner (it also writes `.cortex/maps/index.json`):
 
 ```bash
-bash .cortex/scripts/cortex-init.sh
+bash .cortex/scripts/cortex-areas.sh
 ```
 
-The script prints a complete directory tree of the project (excluding `.git`, `node_modules`, and other common ignored directories).
+The partitioner uses `cortex-scan.sh` internally, which respects your project's `.gitignore` to exclude files and directories you don't want documented.
 
-### Step 2 — Explore and document
+- Output `FLAT <n>` → the repo is small (≤ 150 files). Generate a **single flat `MAP.md`** documenting every file directly (as before). Skip Step 2; go to Step 3 (flat variant).
+- Output `AREA <root> <n>` lines → the repo is large. Proceed with hierarchical generation.
 
-Take the tree output and, for **every directory** in the project:
+### Step 2 — Generate per-area sub-maps (hierarchical only)
 
-1. Read files inside to understand their purpose
-2. Identify:
-   - What the directory contains (source code, configuration, tests, etc.)
-   - Purpose of each file (utility, component, route, model, script, etc.)
-   - Technologies used in each directory
-3. Document concisely — focus on **what it is and where to find it**, not how it works internally
+For **each area** listed by `cortex-areas.sh`, independently:
 
-For deeply nested or very large directories, examine representative files to infer patterns.
+1. List the area's files:
+   ```bash
+   bash .cortex/scripts/cortex-scan.sh --files | grep -E '^<area-root>/'
+   ```
+2. Read enough of each file to state its purpose in one line. Because an area is bounded (~≤ 60 files) you can reach **every** file — do not summarise at directory level.
+3. Write `.cortex/maps/<area>.md` (filename from the manifest's `map` field). Format:
+   ```markdown
+   # Area map — <area-root>/
 
-### Step 3 — Write MAP.md
+   > Loaded on demand. Part of the CORTEX hierarchical map.
 
-Generate `.cortex/MAP.md` following this format:
+   - `path/to/file.ext` → one-line purpose. Key funcs: `foo()`, `bar()`.
+   ```
+   Include key/public functions or exports where they help the agent go straight to the file.
+4. **Log coverage** for the area: files found vs documented. The count of undocumented files must be 0, or list them explicitly.
 
-```markdown
-# Knowledge Map — [Project Name]
+### Step 3 — Write the root index (`MAP.md`)
 
-> Knowledge layer for AI coding agents.
-> MAP.md generated: YYYY-MM-DD
-> Keep this file updated as the project evolves.
+`MAP.md` is the always-loaded index. It must contain:
 
----
+- **Tech Stack** table (Step 0), each row tagged with its source.
+- **100% of directories** described (what each contains, its purpose) — never omit a directory.
+- **Project conventions** — where utilities/services/tests/components/etc. live (so new files are placed correctly without loading a sub-map).
+- **Area pointers** — for each area: `detail for <root>/ → .cortex/<map>`.
 
-## 🛠 Tech Stack
+For a **flat** repo, `MAP.md` documents every file directly and there is no `maps/` directory.
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Node.js    | 22.x    | Runtime |
-| TypeScript | 5.7.x   | Language |
-| React      | 19.x    | UI framework |
-| ...        | ...     | ... |
+Format rules: `📁` for directories with an italic description; `-` + `→` for files; be consistent.
 
-_List only the most relevant technologies. Omit minor/dev-only dependencies unless they define the project architecture._
+### Step 4 — Preserve existing Notes
 
----
-
-## 📁 src/
-_All application source code_
-
-### 📁 src/api/routes/
-_REST API route definitions. Each file groups routes by resource._
-- `auth.routes.ts` → Authentication endpoints (login, register, logout)
-- `users.routes.ts` → User CRUD operations
-```
-
-Key rules:
-- Use `📁` for directories with an italic description on the same line
-- Use `-` with `→` for files: `filename.ext → One-line description of purpose`
-- Group related files under their directory
-- Be consistent with indentation and formatting
-- Every file in the project gets an entry
-- Tech Stack table: include only meaningful dependencies (frameworks, runtimes, databases, major libraries). Use `"latest"` or `"N/A"` if version cannot be determined.
-
-### Step 4 — Preserve existing notes
-
-If MAP.md already exists and contains **Notes** (decisions, gotchas, observations), preserve those at the bottom of the new file.
+If `MAP.md` already exists and contains **Notes**, preserve them at the bottom.
 
 ### Step 5 — Notify
 
-Confirm the map was generated and invite the user to review it.
+Confirm the map was generated (flat or hierarchical, area count, total files documented) and invite review.

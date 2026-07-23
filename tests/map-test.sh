@@ -123,5 +123,15 @@ bash "$REPO_ROOT/install.sh" --agent claude --source "$REPO_ROOT" "$I" >/dev/nul
 preg2="$(jq -r '.hooks.PreToolUse[]?.hooks[]?.command' "$I/.claude/settings.json" 2>/dev/null | grep -c 'cortex-map-load.sh' || true)"
 assert_eq "PreToolUse not duplicated" "$preg2" "$preg"
 
+echo "== cortex-init.md: hierarchical procedure present =="
+INIT="$REPO_ROOT/.cortex/commands/cortex-init.md"
+initc="$(cat "$INIT")"
+assert_has "mentions cortex-areas" "$initc" "cortex-areas.sh"
+assert_has "mentions per-area sub-maps" "$initc" ".cortex/maps/"
+assert_has "mentions flat gate" "$initc" "flat"
+assert_has "mentions coverage logging" "$initc" "coverage"
+assert_has "mentions gitignore exclusions" "$initc" ".gitignore"
+assert_has "mentions best-effort tech" "$initc" "best-effort"
+
 echo ""; echo "map-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
