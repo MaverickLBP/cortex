@@ -39,5 +39,36 @@ N="$TMP/plain"; mkdir -p "$N/lib"; printf 'x\n' > "$N/lib/z.py"
 outn="$(bash "$SCAN" --files "$N")"
 assert_has "non-git includes lib/z.py" "$outn" "lib/z.py"
 
+AREAS="$REPO_ROOT/.cortex/scripts/cortex-areas.sh"
+
+echo "== areas: small repo → flat =="
+S="$TMP/small"; mkdir -p "$S/src"; ( cd "$S" && git init -q && git config user.email t@t && git config user.name t )
+for i in $(seq 1 5); do printf 'x\n' > "$S/src/f$i.js"; done
+sumS="$(CORTEX_FLAT_CAP=150 bash "$AREAS" "$S")"
+assert_has "small repo reports FLAT" "$sumS" "FLAT"
+assert_eq  "small repo flat flag" "$(jq -r '.flat' "$S/.cortex/maps/index.json")" "true"
+
+echo "== areas: large repo → partitioned by subtree =="
+L="$TMP/large"; ( mkdir -p "$L" && cd "$L" && git init -q && git config user.email t@t && git config user.name t )
+# mod-a: 12 files, mod-b: 12 files, tiny: 1 file
+for m in a b; do mkdir -p "$L/src/mod-$m"; for i in $(seq 1 12); do printf 'x\n' > "$L/src/mod-$m/f$i.js"; done; done
+mkdir -p "$L/src/tiny"; printf 'x\n' > "$L/src/tiny/z.js"
+sumL="$(CORTEX_FLAT_CAP=10 CORTEX_AREA_CAP=15 CORTEX_MERGE_MIN=5 bash "$AREAS" "$L")"
+assert_no  "large repo not flat" "$sumL" "FLAT"
+assert_has "area for mod-a" "$sumL" "src/mod-a"
+assert_has "area for mod-b" "$sumL" "src/mod-b"
+# tiny (1 file < MERGE_MIN) must NOT be its own area
+assert_no  "tiny not promoted" "$sumL" "AREA src/tiny"
+# manifest: longest-prefix resolves a mod-a file to the mod-a area
+ma="$(jq -r '.areas[].root' "$L/.cortex/maps/index.json" | grep -x 'src/mod-a')"
+assert_eq "mod-a is an area root" "$ma" "src/mod-a"
+
+echo "== areas: single-child chain collapses =="
+C="$TMP/chain"; ( mkdir -p "$C" && cd "$C" && git init -q && git config user.email t@t && git config user.name t )
+mkdir -p "$C/a/b/c/pkg"; for i in $(seq 1 20); do printf 'x\n' > "$C/a/b/c/pkg/f$i.js"; done
+sumC="$(CORTEX_FLAT_CAP=10 CORTEX_AREA_CAP=15 CORTEX_MERGE_MIN=5 bash "$AREAS" "$C")"
+# The area root should be the collapsed deep dir, not the pass-through 'a'
+assert_has "chain collapses to a/b/c/pkg" "$sumC" "a/b/c/pkg"
+
 echo ""; echo "map-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
