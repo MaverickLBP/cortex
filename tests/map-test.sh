@@ -81,5 +81,34 @@ sumC="$(CORTEX_FLAT_CAP=10 CORTEX_AREA_CAP=15 CORTEX_MERGE_MIN=5 bash "$AREAS" "
 # The area root should be the collapsed deep dir, not the pass-through 'a'
 assert_has "chain collapses to a/b/c/pkg" "$sumC" "a/b/c/pkg"
 
+LOAD="$REPO_ROOT/.claude/hooks/cortex-map-load.sh"
+
+# Build a hierarchical fixture with a manifest + sub-map file.
+H="$TMP/hier"; mkdir -p "$H/.cortex/maps" "$H/src/mod-a"
+printf 'x\n' > "$H/src/mod-a/a.js"
+cat > "$H/.cortex/maps/index.json" <<'JSON'
+{"version":1,"flat":false,"areas":[{"root":"src/mod-a","map":"maps/src__mod-a.md","files":12}]}
+JSON
+printf '# map\n' > "$H/.cortex/maps/src__mod-a.md"
+
+echo "== map-load: Grep in an area → reminder =="
+gout="$(printf '{"tool_name":"Grep","tool_input":{"pattern":"foo","path":"src/mod-a"},"cwd":"%s"}' "$H" | bash "$LOAD")"
+assert_has "grep reminder names sub-map" "$gout" "maps/src__mod-a.md"
+
+echo "== map-load: Write into area → placement note =="
+wout="$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s/src/mod-a/new.js"},"cwd":"%s"}' "$H" "$H" | bash "$LOAD")"
+assert_has "write note names sub-map" "$wout" "maps/src__mod-a.md"
+
+echo "== map-load: flat repo → silent =="
+F="$TMP/flatrepo"; mkdir -p "$F/.cortex/maps"
+echo '{"version":1,"flat":true,"areas":[]}' > "$F/.cortex/maps/index.json"
+fout="$(printf '{"tool_name":"Grep","tool_input":{"pattern":"foo","path":"src"},"cwd":"%s"}' "$F" | bash "$LOAD")"
+assert_eq "flat repo silent" "$fout" ""
+
+echo "== map-load: no manifest → silent =="
+P="$TMP/nomani"; mkdir -p "$P/src"
+pout="$(printf '{"tool_name":"Grep","tool_input":{"pattern":"foo","path":"src"},"cwd":"%s"}' "$P" | bash "$LOAD")"
+assert_eq "no manifest silent" "$pout" ""
+
 echo ""; echo "map-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
