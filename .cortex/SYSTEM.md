@@ -142,7 +142,7 @@ The agent reads MAP.md and presents it to the user in a readable format.
 └── maps/                      ← Generated at runtime (large/hierarchical projects only): index.json + per-area <area>.md sub-maps
 
 .claude/                       ← Claude Code only (when installed for Claude)
-├── settings.json              ← SessionStart hook → .claude/hooks/cortex-session.sh
+├── settings.json              ← Registers SessionStart, PostToolUse, SubagentStart, PreToolUse hooks
 ├── hooks/
 │   ├── cortex-session.sh      ← Injects SYSTEM.md + MAP.md content at session start
 │   ├── cortex-file-change.sh  ← PostToolUse: reminds to update MAP.md on file creation/removal
