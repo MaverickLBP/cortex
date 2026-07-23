@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] — 2026-07-23
+
+### Added
+- `.cortex/scripts/cortex-scan.sh` — gitignore-aware file/directory scanner. Enumerates
+  documentable files (or their parent directories) honoring `.gitignore` via `git
+  ls-files` in git repos, falling back to `find` with common excludes otherwise.
+  Always excludes the universal floor (`.git`, `.cortex`, `.claude`, `.opencode`).
+- `.cortex/scripts/cortex-areas.sh` — scale-adaptive area partitioner and manifest
+  writer. Below `CORTEX_FLAT_CAP` files, writes a flat manifest (no partitioning);
+  above it, greedily splits oversized directories by subtree size
+  (`CORTEX_AREA_CAP`), promotes subdirectories whose subtree size clears
+  `CORTEX_MERGE_MIN`, collapses single-child pass-through directory chains to their
+  deepest meaningful root, and rolls unclaimed root-level files into a synthetic
+  `_misc` area. Writes `.cortex/maps/index.json` (`{version, flat, areas:[{root, map,
+  files}]}`).
+- Three-layer hierarchical map for large projects: root `MAP.md` becomes a
+  lightweight, always-loaded **index**; each area gets its own on-demand sub-map at
+  `.cortex/maps/<area>.md` (naming: `a/b/c` → `maps/a__b__c.md`); `.cortex/maps/
+  index.json` is the manifest resolving any path to its area via longest-root-prefix
+  match. Small/medium projects stay flat — no `maps/` directory, no behavior change.
+- `.claude/hooks/cortex-map-load.sh` — PreToolUse hook: a safety net for hierarchical
+  projects only. On `Grep`/`Glob`, reminds the agent to consult
+  `.cortex/maps/index.json` and read the resolved sub-map instead of searching blind.
+  On `Write` to a new path, reminds the agent to place the file per MAP.md's
+  documented conventions and keep the relevant sub-map in sync. Silent on flat
+  projects and non-CORTEX paths.
+- `tests/map-test.sh` — test harness for `cortex-scan.sh` and `cortex-areas.sh`:
+  gitignore-aware scanning, directory enumeration, non-git fallback, the flat/
+  hierarchical partition gate, subtree splitting, tiny-leftover non-promotion, and
+  single-child chain collapse, all against temporary fixtures.
+- `.cortex/SYSTEM.md` §2.5 ("The hierarchical map") — standing instructions for
+  discovering, placing, and maintaining files under the three-layer hierarchy.
+  These instructions apply to every agent; on OpenCode (no hook mechanism) they are
+  the entire enforcement mechanism, not a supplement to hooks.
+- Best-effort tech stack cascade in `cortex-init`/`cortex-update`: tech stack
+  detection now degrades gracefully across partial/missing manifests instead of
+  assuming a single canonical dependency file, so genericity holds on unfamiliar
+  stacks.
+
+### Changed
+- `install.sh` installs and registers `cortex-scan.sh`, `cortex-areas.sh`, and the
+  new `cortex-map-load.sh` PreToolUse hook (idempotent); re-run it on installed
+  projects to upgrade.
+- `.cortex/commands/cortex-init.md` and `.cortex/commands/cortex-update.md`
+  procedures rewritten to drive the scan → area-partition → per-area sub-map
+  pipeline, falling back to the pre-existing flat behavior below the scale
+  threshold.
+- `SYSTEM.md` v4.2.0 — adds §2.5 and cross-references it from §2.4 so active
+  enforcement (Claude Code hooks) and standing instructions (all agents, and the
+  sole mechanism on OpenCode) read as one coherent story rather than two
+  independent sections.
+
 ## [4.1.0] — 2026-07-20
 
 ### Added
@@ -116,7 +168,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/MaverickLBP/cortex/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/MaverickLBP/cortex/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/MaverickLBP/cortex/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/MaverickLBP/cortex/compare/v3.0.0...v3.1.0

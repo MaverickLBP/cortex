@@ -1,7 +1,7 @@
 # CORTEX — System Instructions
 
 > System file — **do not modify manually.**
-> Version: 4.1.0
+> Version: 4.2.0
 > Knowledge layer for AI coding agents.
 
 ---
@@ -63,6 +63,9 @@ Under Claude Code, CORTEX registers hooks that fire during the session:
   silently, or consciously decide the existing folder-level entry covers it.
   Never ignore or defer these reminders.
 - A `SubagentStart` hook gives subagents a short CORTEX note automatically.
+- A `PreToolUse` hook (`cortex-map-load.sh`, on `Grep`/`Glob`/`Write`) is the
+  safety net for hierarchical (large) projects — see §2.5 below for what it
+  reminds you to do and why.
 
 Regardless of agent: when YOU dispatch subagents or delegate work that may
 create, delete, or rename project files, include in the dispatch prompt that
