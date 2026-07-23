@@ -19,6 +19,8 @@ printf 'x\n' > "$G/src/a/one.js"
 printf 'x\n' > "$G/src/b/two.js"
 printf 'x\n' > "$G/dist/bundle.js"
 printf 'x\n' > "$G/.cortex/MAP.md"
+printf 'x\n' > "$G/README.md"
+( cd "$G" && git add README.md )
 printf 'dist/\n' > "$G/.gitignore"
 
 echo "== scan: gitignored dir excluded =="
@@ -30,6 +32,7 @@ assert_no  "excludes .cortex (floor)"   "$out" ".cortex/MAP.md"
 echo "== scan: dirs mode =="
 dirs="$(bash "$SCAN" --dirs "$G")"
 assert_has "dirs includes src/a" "$dirs" "src/a"
+assert_no "dirs excludes root-level file (no parent dir)" "$dirs" "README.md"
 
 echo "== scan: non-git fallback still runs =="
 N="$TMP/plain"; mkdir -p "$N/lib"; printf 'x\n' > "$N/lib/z.py"

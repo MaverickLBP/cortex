@@ -32,7 +32,7 @@ list_files() {
 if [ "$MODE" = "--files" ]; then
   list_files | grep -Ev "$FLOOR_RE" | sort -u
 else
-  list_files | grep -Ev "$FLOOR_RE" \
-    | sed 's|/[^/]*$||' | grep -v '^$' | sort -u
+  list_files | grep -Ev "$FLOOR_RE" | grep '/' \
+    | sed 's|/[^/]*$||' | sort -u
 fi
 exit 0
