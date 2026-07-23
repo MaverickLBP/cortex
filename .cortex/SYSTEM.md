@@ -69,6 +69,17 @@ create, delete, or rename project files, include in the dispatch prompt that
 this project uses CORTEX and that `.cortex/MAP.md` must be consulted for file
 placement and updated for structural changes.
 
+### 2.5 The hierarchical map (large projects)
+
+Large projects split the map: `MAP.md` is a lightweight **index** (always in your context); per-area detail lives in `.cortex/maps/<area>.md`, loaded **on demand**. A manifest `.cortex/maps/index.json` maps each area root to its sub-map file.
+
+**These instructions apply to every agent (Claude Code and OpenCode alike).** On Claude Code, PreToolUse hooks remind you at the moment of a search/create; on OpenCode there are no hooks, so following these instructions is mandatory — they are the whole mechanism.
+
+- **Before searching or working in an area:** consult `.cortex/maps/index.json`, find the area whose root is the longest directory prefix of your target path, and **read that `.cortex/maps/<area>.md` first**. It lists the area's files and key functions — go straight to the file instead of grepping blind.
+- **Placing a new file:** the root `MAP.md` documents every directory and the project's **conventions** (where utilities/services/tests/components go). Use them — you do not need a sub-map to place a file correctly.
+- **After a structural change:** update the **correct sub-map** — resolve the changed path's area via `index.json` (longest-root-prefix) and edit that `.cortex/maps/<area>.md`, not the root index. If areas themselves changed (new/removed), re-run `cortex-update`.
+- **Small (flat) projects:** there is no `maps/` directory; `MAP.md` documents every file directly. Nothing extra to load.
+
 ## 3. The cortex-init command
 
 When run for the first time in a project:

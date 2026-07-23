@@ -140,5 +140,20 @@ assert_has "re-runs areas" "$updc" "cortex-areas.sh"
 assert_has "handles flat<->hierarchical" "$updc" "promotion"
 assert_has "targets correct sub-map" "$updc" "index.json"
 
+echo "== SYSTEM.md: hierarchy standing instructions =="
+SYS="$REPO_ROOT/.cortex/SYSTEM.md"
+sysc="$(cat "$SYS")"
+assert_has "explains maps/index.json" "$sysc" "maps/index.json"
+assert_has "instructs load sub-map before working" "$sysc" "sub-map"
+assert_has "placement from index" "$sysc" "conventions"
+assert_has "agent-agnostic (mentions OpenCode)" "$sysc" "OpenCode"
+
+echo "== OpenCode install carries SYSTEM.md + MAP.md =="
+O="$TMP/octarget"; mkdir -p "$O"
+bash "$REPO_ROOT/install.sh" --agent opencode --source "$REPO_ROOT" "$O" >/dev/null 2>&1
+instr="$(jq -r '.instructions[]?' "$O/opencode.json" 2>/dev/null)"
+assert_has "opencode loads SYSTEM.md" "$instr" ".cortex/SYSTEM.md"
+assert_has "opencode loads MAP.md" "$instr" ".cortex/MAP.md"
+
 echo ""; echo "map-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
