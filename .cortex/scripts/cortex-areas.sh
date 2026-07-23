@@ -46,7 +46,7 @@ printf '%s\n' "$FILES" | awk -v cap="$AREA_CAP" -v mmin="$MERGE_MIN" '
 END{
   for(d in cnt){
     slashes=0; tmp=d; while(match(tmp,/\//)){slashes++; tmp=substr(tmp,RSTART+1)}
-    if(slashes==0){ q[++qn]=d }
+    if(slashes==0){ if(cnt[d]>=mmin){ q[++qn]=d } }
   }
   head=1;
   while(head<=qn){

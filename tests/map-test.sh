@@ -63,6 +63,17 @@ assert_no  "tiny not promoted" "$sumL" "AREA src/tiny"
 ma="$(jq -r '.areas[].root' "$L/.cortex/maps/index.json" | grep -x 'src/mod-a')"
 assert_eq "mod-a is an area root" "$ma" "src/mod-a"
 
+echo "== areas: top-level tiny dir not promoted =="
+TT="$TMP/toptiny"; ( mkdir -p "$TT" && cd "$TT" && git init -q && git config user.email t@t && git config user.name t )
+mkdir -p "$TT/small" "$TT/big"
+for i in 1 2; do printf 'x\n' > "$TT/small/f$i.js"; done
+for i in $(seq 1 20); do printf 'x\n' > "$TT/big/f$i.js"; done
+sumTT="$(CORTEX_FLAT_CAP=5 CORTEX_AREA_CAP=15 CORTEX_MERGE_MIN=5 bash "$AREAS" "$TT")"
+assert_has "area for big" "$sumTT" "AREA big"
+# small (2 files < MERGE_MIN) is top-level; must NOT be promoted to its own area
+assert_no  "small top-level dir not promoted" "$sumTT" "AREA small"
+assert_has "small top-level dir rolled into _misc" "$sumTT" "AREA . 2"
+
 echo "== areas: single-child chain collapses =="
 C="$TMP/chain"; ( mkdir -p "$C" && cd "$C" && git init -q && git config user.email t@t && git config user.name t )
 mkdir -p "$C/a/b/c/pkg"; for i in $(seq 1 20); do printf 'x\n' > "$C/a/b/c/pkg/f$i.js"; done
