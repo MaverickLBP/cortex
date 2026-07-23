@@ -90,6 +90,23 @@ assert_has "area for big" "$sumTT" "AREA big"
 assert_no  "small top-level dir not promoted" "$sumTT" "AREA small"
 assert_has "small top-level dir rolled into _misc" "$sumTT" "AREA . 2"
 
+echo "== areas: _misc includes both root-level files AND sub-threshold top-level dir files =="
+# Reproduces the whole-branch-review scenario: big/ (20 files, promoted to its
+# own area), small/ (3 files, below MERGE_MIN, NOT promoted), and a root-level
+# README.md. _misc must count README.md + small's 3 files = 4, proving _misc
+# is NOT "root-level loose files only" (which would wrongly yield 1).
+MX="$TMP/miscmix"; ( mkdir -p "$MX" && cd "$MX" && git init -q && git config user.email t@t && git config user.name t )
+mkdir -p "$MX/small" "$MX/big"
+printf 'x\n' > "$MX/README.md"
+for i in 1 2 3; do printf 'x\n' > "$MX/small/f$i.js"; done
+for i in $(seq 1 20); do printf 'x\n' > "$MX/big/f$i.js"; done
+( cd "$MX" && git add -A )
+sumMX="$(CORTEX_FLAT_CAP=5 CORTEX_AREA_CAP=15 CORTEX_MERGE_MIN=5 bash "$AREAS" "$MX")"
+assert_has "area for big (miscmix)" "$sumMX" "AREA big"
+assert_no  "small top-level dir not promoted (miscmix)" "$sumMX" "AREA small"
+misc_count="$(jq -r '.areas[] | select(.root==".") | .files' "$MX/.cortex/maps/index.json")"
+assert_eq "misc counts README.md + small's 3 files = 4" "$misc_count" "4"
+
 echo "== areas: single-child chain collapses =="
 C="$TMP/chain"; ( mkdir -p "$C" && cd "$C" && git init -q && git config user.email t@t && git config user.name t )
 mkdir -p "$C/a/b/c/pkg"; for i in $(seq 1 20); do printf 'x\n' > "$C/a/b/c/pkg/f$i.js"; done

@@ -63,13 +63,15 @@ For **each area** listed by `cortex-areas.sh`, independently:
        | grep -vE '^<deeper-area-root-1>/|^<deeper-area-root-2>/'   # one -vE clause per deeper area, if any
      ```
      If no other area nests under this one, drop the `grep -v` entirely and just use `grep -E '^<area-root>/'`.
-   - **Root/`_misc` case** (area root is `"."`, map `maps/_misc.md`): the general `<area-root>/` pattern doesn't apply — `cortex-scan.sh --files` output has no `./` prefix, so `grep -E '^\./'` would match nothing. For this area, "this area's files" means root-level files (no `/` in the path), which by construction can't belong to any other area:
+   - **Root/`_misc` case** (area root is `"."`, map `maps/_misc.md`): the general `<area-root>/` pattern doesn't apply — `cortex-scan.sh --files` output has no `./` prefix, so `grep -E '^\./'` would match nothing. `_misc` is **not** just root-level loose files — it is a catch-all for every documentable file not claimed by any *other* (promoted) area's root, which also includes files inside a top-level directory that fell below `CORTEX_MERGE_MIN` and was never promoted to its own area. Read `.cortex/maps/index.json`, collect every other area's `root` value (i.e. every area except `_misc` itself), and exclude each of their prefixes:
      ```bash
-     # For the root-level "_misc" area (root "."): files with no "/" AND not
-     # claimed by any other area's root prefix.
-     bash .cortex/scripts/cortex-scan.sh --files | grep -v '/'
+     # For the root-level "_misc" area (root "."): all files EXCLUDING every
+     # other area's root prefix (read .cortex/maps/index.json for the full
+     # list of area roots first).
+     bash .cortex/scripts/cortex-scan.sh --files \
+       | grep -vE '^<area-root-1>/|^<area-root-2>/|...'   # one -vE clause per REAL area in index.json
      ```
-     (Root-level files by definition have no `/` in cortex-scan's output, so no further exclusion is needed here.)
+     This correctly drops files inside promoted areas while keeping both root-level loose files and files inside any top-level directory that never got promoted (sub-`MERGE_MIN` directories) — exactly what `cortex-areas.sh` itself counts into `_misc`. If there are no other areas, drop the `grep -v` entirely and just use the raw `--files` output.
 2. Read enough of each file to state its purpose in one line. Because an area is bounded (~≤ 60 files) you can reach **every** file — do not summarise at directory level.
 3. Write `.cortex/maps/<area>.md` (filename from the manifest's `map` field). Format:
    ```markdown
