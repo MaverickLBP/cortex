@@ -63,6 +63,22 @@ assert_no  "tiny not promoted" "$sumL" "AREA src/tiny"
 ma="$(jq -r '.areas[].root' "$L/.cortex/maps/index.json" | grep -x 'src/mod-a')"
 assert_eq "mod-a is an area root" "$ma" "src/mod-a"
 
+echo "== areas: parent with own files + oversized child → disjoint nested areas =="
+D="$TMP/disjoint"; ( mkdir -p "$D" && cd "$D" && git init -q && git config user.email t@t && git config user.name t )
+# parent: 10 own direct files; parent/child: 20 files → child oversized, becomes its own area
+mkdir -p "$D/parent/child"
+for i in $(seq 1 10); do printf 'x\n' > "$D/parent/f$i.js"; done
+for i in $(seq 1 20); do printf 'x\n' > "$D/parent/child/f$i.js"; done
+sumD="$(CORTEX_FLAT_CAP=10 CORTEX_AREA_CAP=15 CORTEX_MERGE_MIN=5 bash "$AREAS" "$D")"
+assert_has "area for parent" "$sumD" "AREA parent "
+assert_has "area for parent/child" "$sumD" "AREA parent/child "
+# manifest: both areas present, disjoint (exclusive) file counts — parent owns
+# only its 10 direct files, parent/child owns its own 20, not 30.
+pf="$(jq -r '.areas[] | select(.root=="parent") | .files' "$D/.cortex/maps/index.json")"
+cf="$(jq -r '.areas[] | select(.root=="parent/child") | .files' "$D/.cortex/maps/index.json")"
+assert_eq "parent owns only its own 10 files (exclusive of child)" "$pf" "10"
+assert_eq "parent/child owns its own 20 files" "$cf" "20"
+
 echo "== areas: top-level tiny dir not promoted =="
 TT="$TMP/toptiny"; ( mkdir -p "$TT" && cd "$TT" && git init -q && git config user.email t@t && git config user.name t )
 mkdir -p "$TT/small" "$TT/big"

@@ -29,6 +29,8 @@ Run `bash .cortex/scripts/cortex-areas.sh`. It rewrites `.cortex/maps/index.json
 ### Step 4 — Sync changed areas only
 For areas whose files changed: update only the affected `maps/<area>.md`. Resolve which sub-map a changed path belongs to via `index.json` (longest-root-prefix). Unchanged areas and their sub-maps are left intact.
 
+When re-listing an area's files (e.g. to re-check coverage), remember areas partition files **disjointly** — an area's `files` count in `index.json` excludes any deeper nested area's files. Use the same exclusive listing recipe as `cortex-init.md` Step 2: exclude any other area whose `root` nests under this area's root (`grep -vE '^<deeper-area-root>/'` per deeper area found via longest-root-prefix in `index.json`), and for the root/`_misc` area (`root: "."`) list root-level files with `grep -v '/'` instead of `grep -E '^\./'` (which matches nothing).
+
 ### Step 5 — Refresh the index + Tech Stack
 Update `MAP.md` directory descriptions, conventions, area pointers, and the Tech Stack (best-effort cascade) for added/removed deps.
 

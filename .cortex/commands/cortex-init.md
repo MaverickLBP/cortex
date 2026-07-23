@@ -50,12 +50,26 @@ The partitioner uses `cortex-scan.sh` internally, which respects your project's 
 
 ### Step 2 — Generate per-area sub-maps (hierarchical only)
 
+Areas partition files **disjointly**: when a parent directory has its own files AND an oversized child directory that got promoted to its own area, both appear as separate entries in `.cortex/maps/index.json`, and each area's `files` count is *exclusive* of any deeper area's files. So an area's file listing must exclude anything owned by a deeper nested area — otherwise the same files get documented twice and the coverage count in step 4 won't reconcile with the manifest.
+
 For **each area** listed by `cortex-areas.sh`, independently:
 
-1. List the area's files:
-   ```bash
-   bash .cortex/scripts/cortex-scan.sh --files | grep -E '^<area-root>/'
-   ```
+1. List the area's files, **excluding any deeper nested area's files**:
+   - First check `.cortex/maps/index.json` for any *other* area whose `root` nests under this area's root (i.e. `other.root` starts with `<this-area-root>/`). Collect all such deeper roots.
+   - **General case** (area root is a real path, not `.`):
+     ```bash
+     # List this area's OWN files (excluding any deeper nested area's files)
+     bash .cortex/scripts/cortex-scan.sh --files | grep -E '^<area-root>/' \
+       | grep -vE '^<deeper-area-root-1>/|^<deeper-area-root-2>/'   # one -vE clause per deeper area, if any
+     ```
+     If no other area nests under this one, drop the `grep -v` entirely and just use `grep -E '^<area-root>/'`.
+   - **Root/`_misc` case** (area root is `"."`, map `maps/_misc.md`): the general `<area-root>/` pattern doesn't apply — `cortex-scan.sh --files` output has no `./` prefix, so `grep -E '^\./'` would match nothing. For this area, "this area's files" means root-level files (no `/` in the path), which by construction can't belong to any other area:
+     ```bash
+     # For the root-level "_misc" area (root "."): files with no "/" AND not
+     # claimed by any other area's root prefix.
+     bash .cortex/scripts/cortex-scan.sh --files | grep -v '/'
+     ```
+     (Root-level files by definition have no `/` in cortex-scan's output, so no further exclusion is needed here.)
 2. Read enough of each file to state its purpose in one line. Because an area is bounded (~≤ 60 files) you can reach **every** file — do not summarise at directory level.
 3. Write `.cortex/maps/<area>.md` (filename from the manifest's `map` field). Format:
    ```markdown
