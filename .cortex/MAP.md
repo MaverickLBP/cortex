@@ -56,6 +56,7 @@ _Command definitions (agent-agnostic templates). The installer copies these to `
 _Utility scripts for CORTEX operations._
 
 - `cortex-scan.sh` → **Gitignore-aware file scanner.** Enumerates documentable files or their parent directories. Honors `.gitignore` in git repositories via `git ls-files`; falls back to `find` with common excludes for non-git directories. Always excludes universal floor: `.git`, `.cortex`, `.claude`, `.opencode`. Usage: `bash .cortex/scripts/cortex-scan.sh [--files|--dirs] [ROOT]`.
+- `cortex-areas.sh` → **Scale-adaptive area partition + manifest writer.** Consumes `cortex-scan.sh --files`; below `CORTEX_FLAT_CAP` files writes a flat manifest, otherwise greedily splits oversized directories by subtree size (`CORTEX_AREA_CAP`), promoting immediate subdirs with subtree size ≥ `CORTEX_MERGE_MIN`, collapses single-child pass-through chains to their deepest meaningful root, and rolls unclaimed root-level files into a synthetic `_misc` area. Writes `ROOT/.cortex/maps/index.json` (`{version, flat, areas:[{root, map, files}]}`, map filenames `a/b/c` → `maps/a__b__c.md`) and prints a `FLAT <n>` or `AREA <root> <count>` summary. Usage: `bash .cortex/scripts/cortex-areas.sh [ROOT]`.
 - `cortex-init.sh` → **Project scanner.** Bash script that walks the project generating a complete directory and file tree. Excludes `.git`, `node_modules`, `dist`, `build`, `.next`, `out`, `target`, `vendor`, `_build`, `.venv`, `__pycache__`, `.cache`. Usage: `bash .cortex/scripts/cortex-init.sh`.
 
 ---
@@ -96,7 +97,7 @@ _Web landing page served via GitHub Pages. Static site — no build step, no run
 
 _Test harnesses for CORTEX scripts and hooks. No runtime dependencies beyond bash and jq._
 
-- `map-test.sh` → **Test harness for cortex-scan.sh.** Validates gitignore-aware scanning behavior, directory enumeration, and non-git fallback. Tests run against temporary fixtures. Run: `bash tests/map-test.sh`.
+- `map-test.sh` → **Test harness for cortex-scan.sh and cortex-areas.sh.** Validates gitignore-aware scanning behavior, directory enumeration, non-git fallback, the flat/hierarchical area-partition gate, subtree splitting, tiny-leftover non-promotion, and single-child chain collapse. Tests run against temporary fixtures. Run: `bash tests/map-test.sh`.
 - `hooks-test.sh` → **Pipe-test harness for the Claude Code hooks.** Feeds synthetic hook JSON payloads to `cortex-session.sh`, `cortex-file-change.sh`, and `cortex-subagent.sh`, and checks installer hook registration. No live session required. Run: `bash tests/hooks-test.sh`.
 
 ---
