@@ -110,5 +110,18 @@ P="$TMP/nomani"; mkdir -p "$P/src"
 pout="$(printf '{"tool_name":"Grep","tool_input":{"pattern":"foo","path":"src"},"cwd":"%s"}' "$P" | bash "$LOAD")"
 assert_eq "no manifest silent" "$pout" ""
 
+echo "== install: new scripts + PreToolUse registered =="
+I="$TMP/installtarget"; mkdir -p "$I"; ( cd "$I" && git init -q && git config user.email t@t && git config user.name t )
+bash "$REPO_ROOT/install.sh" --agent claude --source "$REPO_ROOT" "$I" >/dev/null 2>&1
+[ -f "$I/.cortex/scripts/cortex-scan.sh" ] && ok "scan installed" || no "scan installed" "missing"
+[ -f "$I/.cortex/scripts/cortex-areas.sh" ] && ok "areas installed" || no "areas installed" "missing"
+[ -f "$I/.claude/hooks/cortex-map-load.sh" ] && ok "map-load installed" || no "map-load installed" "missing"
+preg="$(jq -r '.hooks.PreToolUse[]?.hooks[]?.command' "$I/.claude/settings.json" 2>/dev/null | grep -c 'cortex-map-load.sh' || true)"
+[ "$preg" -ge 1 ] && ok "PreToolUse registered" || no "PreToolUse registered" "not found"
+# idempotency: second run does not duplicate
+bash "$REPO_ROOT/install.sh" --agent claude --source "$REPO_ROOT" "$I" >/dev/null 2>&1
+preg2="$(jq -r '.hooks.PreToolUse[]?.hooks[]?.command' "$I/.claude/settings.json" 2>/dev/null | grep -c 'cortex-map-load.sh' || true)"
+assert_eq "PreToolUse not duplicated" "$preg2" "$preg"
+
 echo ""; echo "map-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

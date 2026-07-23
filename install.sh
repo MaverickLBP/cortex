@@ -135,6 +135,15 @@ EOM
   else
     warn "cortex-init.sh not found in source"
   fi
+
+  for s in cortex-scan.sh cortex-areas.sh; do
+    if copy_file "$src/.cortex/scripts/$s" "$target/.cortex/scripts/$s"; then
+      chmod +x "$target/.cortex/scripts/$s"
+      ok "Installed $s"
+    else
+      warn "$s not found in source"
+    fi
+  done
 }
 
 # ── Install for Claude Code ────────────────────────────
@@ -145,7 +154,7 @@ install_claude() {
   mkdir -p "$target/.claude/hooks" "$target/.claude/commands"
 
   # Hooks (session + active-enforcement)
-  for hook in cortex-session.sh cortex-file-change.sh cortex-subagent.sh; do
+  for hook in cortex-session.sh cortex-file-change.sh cortex-subagent.sh cortex-map-load.sh; do
     if copy_file "$src/.claude/hooks/$hook" "$target/.claude/hooks/$hook"; then
       chmod +x "$target/.claude/hooks/$hook"
       ok "Installed $hook hook"
@@ -216,6 +225,24 @@ install_claude() {
       end
     ' "$settings" > "$tmp" && mv "$tmp" "$settings"
     ok "Merged SubagentStart hook into .claude/settings.json"
+
+    # PreToolUse — map load/placement net (idempotent)
+    tmp="$(mktemp)"
+    jq '
+      .hooks.PreToolUse //= [] |
+      if (.hooks.PreToolUse // [] |
+          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-map-load.sh")) |
+          length) > 0
+      then .
+      else
+        .hooks.PreToolUse += [
+          {"matcher":"Grep","hooks":[{"type":"command","command":"bash .claude/hooks/cortex-map-load.sh"}]},
+          {"matcher":"Glob","hooks":[{"type":"command","command":"bash .claude/hooks/cortex-map-load.sh"}]},
+          {"matcher":"Write","hooks":[{"type":"command","command":"bash .claude/hooks/cortex-map-load.sh"}]}
+        ]
+      end
+    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
+    ok "Merged PreToolUse hook into .claude/settings.json"
   else
     warn "jq not found — skipping settings.json merge (install jq and re-run)"
   fi
