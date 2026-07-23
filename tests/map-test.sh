@@ -133,5 +133,12 @@ assert_has "mentions coverage logging" "$initc" "coverage"
 assert_has "mentions gitignore exclusions" "$initc" ".gitignore"
 assert_has "mentions best-effort tech" "$initc" "best-effort"
 
+echo "== cortex-update.md: hierarchical update present =="
+UPD="$REPO_ROOT/.cortex/commands/cortex-update.md"
+updc="$(cat "$UPD")"
+assert_has "re-runs areas" "$updc" "cortex-areas.sh"
+assert_has "handles flat<->hierarchical" "$updc" "promotion"
+assert_has "targets correct sub-map" "$updc" "index.json"
+
 echo ""; echo "map-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

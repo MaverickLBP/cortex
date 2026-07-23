@@ -16,59 +16,21 @@ Run this when:
 
 ## Procedure
 
-### Step 1 — Read existing MAP.md
+### Step 1 — Read existing map state
+Read `.cortex/MAP.md` and, if present, `.cortex/maps/index.json` + sub-maps. Note custom Notes.
 
-Read the current `.cortex/MAP.md` and identify:
-1. All existing sections (Tech Stack, directory entries, Notes, etc.)
-2. The current format/template being used
-3. Any custom content the user has added
+### Step 2 — Re-partition
+Run `bash .cortex/scripts/cortex-areas.sh`. It rewrites `.cortex/maps/index.json`. Compare the new area set to the old.
 
-### Step 2 — Generate the directory tree
+### Step 3 — Handle flat ↔ hierarchical transitions (promotion/demotion)
+- **Flat → hierarchical promotion:** the repo grew past `FLAT_CAP`. `cortex-areas.sh` now emits areas. Generate the `maps/<area>.md` sub-maps (per `cortex-init.md` Step 2) and rewrite `MAP.md` as an index.
+- **Hierarchical → flat demotion:** the repo shrank below `FLAT_CAP` (`FLAT <n>`). Fold sub-map detail back into a single `MAP.md` and remove `maps/`.
 
-Execute the scanner script:
+### Step 4 — Sync changed areas only
+For areas whose files changed: update only the affected `maps/<area>.md`. Resolve which sub-map a changed path belongs to via `index.json` (longest-root-prefix). Unchanged areas and their sub-maps are left intact.
 
-```bash
-bash .cortex/scripts/cortex-init.sh
-```
+### Step 5 — Refresh the index + Tech Stack
+Update `MAP.md` directory descriptions, conventions, area pointers, and the Tech Stack (best-effort cascade) for added/removed deps.
 
-The script prints a complete directory tree of the project (excluding `.git`, `node_modules`, and other common ignored directories).
-
-### Step 3 — Compare and identify changes
-
-Compare the current MAP.md against the tree output:
-- **New directories/files** → Add entries
-- **Deleted directories/files** → Remove entries
-- **Renamed/moved files** → Update paths
-- **Unchanged entries** → Preserve as-is
-
-### Step 4 — Detect missing sections
-
-Check if the current MAP.md is missing any sections that the latest `cortex-init` format defines:
-- `## 🛠 Tech Stack` (if not present, detect and add it)
-- Any other standard sections defined in `cortex-init.md`
-
-For each missing section:
-1. Detect the required information (e.g. scan `package.json` for Tech Stack)
-2. Insert the section in the correct position (Tech Stack goes after the header, before directory entries)
-3. Preserve all existing content around it
-
-### Step 5 — Write updated MAP.md
-
-Write the updated `.cortex/MAP.md`:
-- Update the generation date in the header
-- Preserve all existing Notes and custom content
-- Add new entries for new files/directories
-- Remove entries for deleted files/directories
-- Add any missing standard sections
-- Keep the same formatting style as the existing file
-
-### Step 6 — Report changes
-
-Summarize what was updated:
-- Number of new entries added
-- Number of entries removed
-- New sections added (if any)
-- Any files that could not be documented
-
-Example:
-> "MAP.md updated, sir. 12 new entries added, 3 removed. Tech Stack section added. Notes preserved."
+### Step 6 — Preserve Notes and report
+Preserve custom Notes. Report: areas added/removed, sub-maps updated, any transition, files documented.
