@@ -135,15 +135,19 @@ The agent reads MAP.md and presents it to the user in a readable format.
 │   ├── cortex-init.md         ← First-run project scanner
 │   ├── cortex-update.md       ← Maintenance updater (preserves content)
 │   └── cortex-view-map.md     ← View map command
-└── scripts/
-    └── cortex-init.sh         ← Tree scanner
+├── scripts/
+│   ├── cortex-init.sh         ← Tree scanner
+│   ├── cortex-scan.sh         ← gitignore-aware file/dir enumeration
+│   └── cortex-areas.sh        ← scale-adaptive area partition + manifest
+└── maps/                      ← Generated at runtime (large/hierarchical projects only): index.json + per-area <area>.md sub-maps
 
 .claude/                       ← Claude Code only (when installed for Claude)
 ├── settings.json              ← SessionStart hook → .claude/hooks/cortex-session.sh
 ├── hooks/
 │   ├── cortex-session.sh      ← Injects SYSTEM.md + MAP.md content at session start
 │   ├── cortex-file-change.sh  ← PostToolUse: reminds to update MAP.md on file creation/removal
-│   └── cortex-subagent.sh     ← SubagentStart: gives subagents CORTEX context
+│   ├── cortex-subagent.sh     ← SubagentStart: gives subagents CORTEX context
+│   └── cortex-map-load.sh     ← PreToolUse: reminds to load the area sub-map before searching, and to check placement conventions before writing a new file
 └── commands/                  ← Slash commands (cortex-init.md, cortex-update.md, cortex-view-map.md)
 
 .opencode/                     ← OpenCode only (when installed for OpenCode)
@@ -156,7 +160,7 @@ opencode.json                  ← OpenCode only: instructions field loads SYSTE
 
 CORTEX v4 supports **Claude Code** and **OpenCode** using their native enforcement mechanisms:
 
-- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) injects SYSTEM.md and MAP.md content at session start; `PostToolUse` and `SubagentStart` hooks provide mid-session enforcement (Claude Code only — OpenCode has no hook mechanism; it loads SYSTEM.md + MAP.md via `opencode.json → instructions` and relies on the instructions themselves for updates).
+- **Claude Code**: A `SessionStart` hook (`cortex-session.sh`) injects SYSTEM.md and MAP.md content at session start; `PreToolUse`, `PostToolUse` and `SubagentStart` hooks provide mid-session enforcement (Claude Code only — OpenCode has no hook mechanism; it loads SYSTEM.md + MAP.md via `opencode.json → instructions` and relies on the instructions themselves for updates).
 - **OpenCode**: `opencode.json` → `instructions` loads `.cortex/SYSTEM.md` and `.cortex/MAP.md` at every session start automatically.
 
 Both agents use `/cortex-init`, `/cortex-update`, and `/cortex-view-map` as slash commands.
