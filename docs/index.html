@@ -77,6 +77,7 @@
         <span class="chip"><i class="material-icons">devices</i>Claude Code &amp; OpenCode</span>
         <span class="chip"><i class="material-icons">bolt</i>Zero dependencies</span>
         <span class="chip"><i class="material-icons">update</i>Auto-updating</span>
+        <span class="chip"><i class="material-icons">account_tree</i>Scales to any repo size</span>
       </div>
     </div>
   </section>
@@ -101,8 +102,9 @@
               <i class="material-icons feature-icon blue-text text-accent-2">map</i>
               <span class="card-title">Living Knowledge Map</span>
               <p>
-                <code>MAP.md</code> documents every directory and file in your project.
-                The agent keeps it updated as you work.
+                Every file documented with a one-line purpose. <code>MAP.md</code>
+                stays a lightweight index and scales with your repo — flat for small
+                projects, a hierarchy of on-demand area maps for large ones.
               </p>
             </div>
           </div>
@@ -137,8 +139,8 @@
               <i class="material-icons feature-icon purple-text text-accent-2">extension</i>
               <span class="card-title">Native Enforcement</span>
               <p>
-                Deep integration with Claude Code (SessionStart, PostToolUse, and
-                SubagentStart hooks) and OpenCode (<code>opencode.json</code> instructions).
+                Deep integration with Claude Code (SessionStart, PostToolUse,
+                SubagentStart, and PreToolUse hooks) and OpenCode (<code>opencode.json</code> instructions).
                 Knowledge loads at every session start, and Claude Code agents get
                 active reminders to keep the map current.
               </p>
@@ -183,8 +185,9 @@
             <div class="step-number green accent-2 white-text">2</div>
             <h5>Initialize</h5>
             <p class="grey-text text-darken-1">
-              The agent scans your project structure, detects the tech stack,
-              and builds <code>MAP.md</code> from scratch.
+              The agent scans your project, detects the tech stack, and builds
+              <code>MAP.md</code> — splitting large repos into per-area maps it
+              loads on demand.
             </p>
             <div class="code-block">
               <code>/cortex-init</code>
@@ -305,7 +308,7 @@
               <tr>
                 <td><strong>Claude Code</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td>SessionStart, PostToolUse &amp; SubagentStart hooks + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
+                <td>SessionStart, PostToolUse, SubagentStart &amp; PreToolUse hooks + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
               </tr>
               <tr>
                 <td><strong>OpenCode</strong></td>
