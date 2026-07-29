@@ -34,5 +34,10 @@ When re-listing an area's files (e.g. to re-check coverage), remember areas part
 ### Step 5 — Refresh the index + Tech Stack
 Update `MAP.md` directory descriptions, conventions, area pointers, and the Tech Stack (best-effort cascade) for added/removed deps.
 
+Full pointer coverage applies here too: if a directory's description names specific subfolders individually, every named subfolder needs its own `detail for <path>/ → .cortex/<map>` line — resolved by longest-root-prefix match against `.cortex/maps/index.json` to its own area, or to the nearest ancestor area's map if it's too small to be its own area (see `cortex-init.md` Step 3). Don't just add pointers for newly-promoted areas — check subfolders named in *existing* bullets too, since a prior run may have left them unpointed.
+
+### Step 5b — Verify pointer coverage
+Re-scan the updated `MAP.md`: for every subfolder path named in a bullet list, confirm a `detail for` line resolves it. Fix any gaps before finishing — do not defer this to a later run.
+
 ### Step 6 — Preserve Notes and report
-Preserve custom Notes. Report: areas added/removed, sub-maps updated, any transition, files documented.
+Preserve custom Notes. Report: areas added/removed, sub-maps updated, any transition, files documented, and pointer-coverage gaps found/fixed in Step 5b.
