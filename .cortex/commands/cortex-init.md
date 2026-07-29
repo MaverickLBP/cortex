@@ -92,10 +92,15 @@ For **each area** listed by `cortex-areas.sh`, independently:
 - **100% of directories** described (what each contains, its purpose) — never omit a directory.
 - **Project conventions** — where utilities/services/tests/components/etc. live (so new files are placed correctly without loading a sub-map).
 - **Area pointers** — for each area: `detail for <root>/ → .cortex/<map>`.
+- **Full pointer coverage** — if a directory's description names specific subfolders individually (e.g. a "notable subfolders" bullet list), **every named subfolder must be followed by its own `detail for <path>/ → .cortex/<map>` line**, not just the folders that got promoted to their own area. Resolve the target by longest-root-prefix match against `.cortex/maps/index.json`: if the subfolder is itself an area, point to its own map; if it isn't (too small to promote), point to the nearest ancestor area's map that actually contains it. Never name a subfolder in prose without also saying where it's documented — a reader should never have to guess which sub-map covers a path they saw mentioned.
 
 For a **flat** repo, `MAP.md` documents every file directly and there is no `maps/` directory.
 
 Format rules: `📁` for directories with an italic description; `-` + `→` for files; be consistent.
+
+### Step 3b — Verify pointer coverage
+
+Before moving on, re-scan the `MAP.md` you just wrote: for every subfolder path named in a bullet list, confirm a `detail for` line resolves it (either its own or an ancestor's). If any are missing, add them now — don't leave this for a future pass. This is the same defect class as an undocumented file: a path mentioned but not pointed anywhere.
 
 ### Step 4 — Preserve existing Notes
 
