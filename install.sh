@@ -104,39 +104,37 @@ install_knowledge() {
   copy_file "$src/.cortex/SYSTEM.md" "$target/.cortex/SYSTEM.md" && \
     ok "Installed SYSTEM.md" || warn "SYSTEM.md not found in source"
 
+  # MAP.md is never copied from the source repo: the source's own MAP.md
+  # describes the source project's folders (e.g. CORTEX's own dogfooded
+  # tree), and that header/body would become permanently baked into every
+  # installed project — map_write preserves "everything before the first
+  # node line" as the header forever, with no sanctioned way to change it
+  # (hand-editing MAP.md is forbidden by design). Instead, write a fresh
+  # header-only map with no folder nodes, using the target's own directory
+  # name, in the same header format cortex-map.sh's map_write falls back to.
   local map_file="$target/.cortex/MAP.md"
   if [ ! -f "$map_file" ]; then
-    if copy_file "$src/.cortex/MAP.md" "$map_file"; then
-      ok "Created MAP.md (template)"
-    else
-      cat > "$map_file" << 'EOM'
-# Knowledge Map — [Project Name]
+    local project_name
+    project_name="$(basename "$target")"
+    cat > "$map_file" << EOM
+# Knowledge Map — ${project_name}
 
-> Knowledge layer for AI coding agents.
-> MAP.md generated: (pending)
-> Run `/cortex-init` to generate the full map automatically.
-
-## 🛠 Tech Stack
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-
-## Notes
+> Folder-level map. Every folder containing tracked files appears here.
+> Generated and maintained by cortex-map.sh. Do not edit by hand.
 EOM
-      ok "Created MAP.md (default template)"
-    fi
+    ok "Created MAP.md (header only — run /cortex-sync to populate it)"
   else
     warn "MAP.md exists — preserved (not overwritten)"
   fi
 
-  if copy_file "$src/.cortex/scripts/cortex-init.sh" "$target/.cortex/scripts/cortex-init.sh"; then
-    chmod +x "$target/.cortex/scripts/cortex-init.sh"
-    ok "Installed cortex-init.sh"
+  if [ ! -f "$target/.cortex/PROJECT.md" ]; then
+    copy_file "$src/.cortex/PROJECT.md" "$target/.cortex/PROJECT.md" && \
+      ok "Installed PROJECT.md template" || warn "PROJECT.md not found in source"
   else
-    warn "cortex-init.sh not found in source"
+    info "PROJECT.md already exists — left untouched"
   fi
 
-  for s in cortex-scan.sh cortex-areas.sh; do
+  for s in cortex-scan.sh cortex-map.sh; do
     if copy_file "$src/.cortex/scripts/$s" "$target/.cortex/scripts/$s"; then
       chmod +x "$target/.cortex/scripts/$s"
       ok "Installed $s"
@@ -154,7 +152,7 @@ install_claude() {
   mkdir -p "$target/.claude/hooks" "$target/.claude/commands"
 
   # Hooks (session + active-enforcement)
-  for hook in cortex-session.sh cortex-file-change.sh cortex-subagent.sh cortex-map-load.sh; do
+  for hook in cortex-session.sh cortex-file-change.sh cortex-subagent.sh cortex-stop.sh; do
     if copy_file "$src/.claude/hooks/$hook" "$target/.claude/hooks/$hook"; then
       chmod +x "$target/.claude/hooks/$hook"
       ok "Installed $hook hook"
@@ -226,29 +224,27 @@ install_claude() {
     ' "$settings" > "$tmp" && mv "$tmp" "$settings"
     ok "Merged SubagentStart hook into .claude/settings.json"
 
-    # PreToolUse — map load/placement net (idempotent)
+    # Stop — consolidate the knowledge map once per turn (idempotent)
     tmp="$(mktemp)"
     jq '
-      .hooks.PreToolUse //= [] |
-      if (.hooks.PreToolUse // [] |
-          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-map-load.sh")) |
+      .hooks.Stop //= [] |
+      if (.hooks.Stop // [] |
+          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-stop.sh")) |
           length) > 0
       then .
       else
-        .hooks.PreToolUse += [
-          {"matcher":"Grep","hooks":[{"type":"command","command":"bash .claude/hooks/cortex-map-load.sh"}]},
-          {"matcher":"Glob","hooks":[{"type":"command","command":"bash .claude/hooks/cortex-map-load.sh"}]},
-          {"matcher":"Write","hooks":[{"type":"command","command":"bash .claude/hooks/cortex-map-load.sh"}]}
-        ]
+        .hooks.Stop += [{"hooks":[
+          {"type":"command","command":"bash .claude/hooks/cortex-stop.sh"}
+        ]}]
       end
     ' "$settings" > "$tmp" && mv "$tmp" "$settings"
-    ok "Merged PreToolUse hook into .claude/settings.json"
+    ok "Merged Stop hook into .claude/settings.json"
   else
     warn "jq not found — skipping settings.json merge (install jq and re-run)"
   fi
 
   # Commands
-  for cmd in cortex-init cortex-update cortex-view-map; do
+  for cmd in cortex-sync; do
     if copy_file "$src/.cortex/commands/${cmd}.md" "$target/.claude/commands/${cmd}.md"; then
       ok "Installed ${cmd} command (Claude Code)"
     else
@@ -271,6 +267,10 @@ install_claude() {
     echo ".claude/settings.local.json" >> "$gitignore"
     ok "Added .claude/settings.local.json to .gitignore"
   fi
+  grep -qF '.cortex/.touched-' "$gitignore" 2>/dev/null || {
+    printf '\n# CORTEX session touch records (ephemeral)\n.cortex/.touched-*\n' >> "$gitignore"
+    ok "Added .cortex/.touched-* to .gitignore"
+  }
 }
 
 # ── Install for OpenCode ───────────────────────────────
@@ -284,6 +284,7 @@ install_opencode() {
   local oc_json="$target/opencode.json"
   if command -v jq >/dev/null 2>&1; then
     json_array_add "$oc_json" "instructions" ".cortex/SYSTEM.md"
+    json_array_add "$oc_json" "instructions" ".cortex/PROJECT.md"
     json_array_add "$oc_json" "instructions" ".cortex/MAP.md"
     ok "Merged CORTEX instructions into opencode.json"
   else
@@ -291,7 +292,7 @@ install_opencode() {
   fi
 
   # Commands
-  for cmd in cortex-init cortex-update cortex-view-map; do
+  for cmd in cortex-sync; do
     if copy_file "$src/.cortex/commands/${cmd}.md" "$target/.opencode/commands/${cmd}.md"; then
       ok "Installed ${cmd} command (OpenCode)"
     else
@@ -423,6 +424,5 @@ echo "  ────────────────────────
 echo -e "  ${GREEN}✔ CORTEX installed in${NC} $TARGET"
 echo ""
 echo "  Next steps:"
-echo "    1. Run  /cortex-init  to generate the knowledge map"
+echo "    1. Run  /cortex-sync  to generate or refresh the knowledge map"
 echo "    2. Commit .cortex/ and .claude/settings.json (if Claude Code)"
-echo "    3. Run  /cortex-view-map  to see the map at any time"

@@ -37,17 +37,22 @@
         ]
       }
     ],
-    "PreToolUse": [
-      { "matcher": "Grep",  "hooks": [ { "type": "command", "command": "bash .claude/hooks/cortex-map-load.sh" } ] },
-      { "matcher": "Glob",  "hooks": [ { "type": "command", "command": "bash .claude/hooks/cortex-map-load.sh" } ] },
-      { "matcher": "Write", "hooks": [ { "type": "command", "command": "bash .claude/hooks/cortex-map-load.sh" } ] }
-    ],
     "SubagentStart": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "bash .claude/hooks/cortex-subagent.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/cortex-stop.sh"
           }
         ]
       }

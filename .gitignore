@@ -17,3 +17,6 @@ Thumbs.db
 
 # Local-only docs (superpowers plans/specs) — not for git
 docs/superpowers/
+
+# CORTEX session touch records (ephemeral)
+.cortex/.touched-*

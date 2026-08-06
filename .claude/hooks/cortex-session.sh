@@ -60,6 +60,10 @@ if [ -n "$WS_ROOT" ]; then
   if [ -f "$CWD/.cortex/SYSTEM.md" ]; then
     SYSTEM_CONTENT="$(cat "$CWD/.cortex/SYSTEM.md" 2>/dev/null || true)"
   fi
+  PROJECT_CONTENT=""
+  if [ -f "$CWD/.cortex/PROJECT.md" ]; then
+    PROJECT_CONTENT="$(cat "$CWD/.cortex/PROJECT.md" 2>/dev/null || true)"
+  fi
   MAP_CONTENT=""
   if [ -f "$CWD/.cortex/MAP.md" ]; then
     MAP_CONTENT="$(cat "$CWD/.cortex/MAP.md" 2>/dev/null || true)"
@@ -74,6 +78,9 @@ if [ -n "$WS_ROOT" ]; then
   if [ -n "$SYSTEM_CONTENT" ]; then
     MSG="${MSG}\nCurrent project (${CWD}) SYSTEM.md:\n\n${SYSTEM_CONTENT}"
   fi
+  if [ -n "$PROJECT_CONTENT" ]; then
+    MSG="${MSG}\n\n--- Current project (${CWD}) PROJECT.md ---\n\n${PROJECT_CONTENT}"
+  fi
   if [ -n "$MAP_CONTENT" ]; then
     MSG="${MSG}\n\n--- Current project (${CWD}) MAP.md ---\n\n${MAP_CONTENT}"
   fi
@@ -86,6 +93,7 @@ fi
 
 # ── Single-project mode ───────────────────────────────
 SYSTEM_MD="$CWD/.cortex/SYSTEM.md"
+PROJECT_MD="$CWD/.cortex/PROJECT.md"
 MAP_MD="$CWD/.cortex/MAP.md"
 
 [ -f "$SYSTEM_MD" ] || exit 0
@@ -93,14 +101,18 @@ MAP_MD="$CWD/.cortex/MAP.md"
 SYSTEM_CONTENT="$(cat "$SYSTEM_MD" 2>/dev/null || true)"
 [ -z "$SYSTEM_CONTENT" ] && exit 0
 
-MSG="CORTEX — mandatory startup sequence (no exceptions):\n\n"
-MSG="${MSG}1. The project's knowledge map (.cortex/MAP.md) is injected below — keep it authoritative for the whole session.\n"
+MSG="CORTEX — mandatory startup context (no exceptions):\n\n"
+MSG="${MSG}1. PROJECT.md (stack + conventions) and MAP.md (every folder in the project) are injected below. Keep both authoritative for the whole session.\n"
 MSG="${MSG}2. Follow all instructions in SYSTEM.md below.\n"
-MSG="${MSG}3. Before creating or locating any file, consult the map first.\n"
+MSG="${MSG}3. Before searching for or creating any file, consult MAP.md first.\n"
 if [ ! -f "$MAP_MD" ]; then
-  MSG="${MSG}   MAP.md not yet generated — run /cortex-init to create it.\n"
+  MSG="${MSG}   MAP.md not yet generated — run /cortex-sync to create it.\n"
 fi
 MSG="${MSG}\n--- SYSTEM.md ---\n\n${SYSTEM_CONTENT}"
+if [ -f "$PROJECT_MD" ]; then
+  PROJECT_CONTENT="$(cat "$PROJECT_MD" 2>/dev/null || true)"
+  [ -n "$PROJECT_CONTENT" ] && MSG="${MSG}\n\n--- PROJECT.md ---\n\n${PROJECT_CONTENT}"
+fi
 if [ -f "$MAP_MD" ]; then
   MAP_CONTENT="$(cat "$MAP_MD" 2>/dev/null || true)"
   [ -n "$MAP_CONTENT" ] && MSG="${MSG}\n\n--- MAP.md ---\n\n${MAP_CONTENT}"

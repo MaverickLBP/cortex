@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] — 2026-08-03
+
+### Breaking changes
+
+- **Map granularity is now per folder, not per project scale.** The flat/hierarchical split,
+  areas, sub-maps and `index.json` are gone — there is one `MAP.md`, always loaded in full,
+  regardless of project size. Existing installations need a reinstall (re-run `install.sh`) and
+  a `/cortex-sync` to regenerate `MAP.md` in the new format.
+
+### Added
+- `.cortex/scripts/cortex-map.sh` — the only writer of `MAP.md`. `--set`/`--remove` maintain a
+  folder-level entry and its ancestors; `--validate` checks indentation and structure;
+  `--lookup` resolves a path by its full path, not by basename; `--drift` diffs the map against
+  the filesystem and only ever proposes folders `--set` can actually accept; `--check` answers,
+  read-only, whether a given path is representable at all — the one place every other component
+  (the `Stop` hook, `--drift`) asks instead of re-deriving the rule.
+- A folder name may contain interior or trailing spaces and non-ASCII characters — a node line
+  in `MAP.md` ends the name at its slash, so the boundary stays unambiguous. What it cannot
+  carry is a leading space in any segment (misread as indentation), a control character, or a
+  top-level name opening with `#`/`>` (misread as header prose). `--set`/`--remove` reject those
+  with a diagnostic and exit 2; no write is ever installed unless it reads back as exactly what
+  was written, so a shape that slipped past every check still fails clean instead of leaving an
+  unreadable map.
+- `.cortex/PROJECT.md` — a per-project file with three sections: **Tech Stack** (agent-owned,
+  refreshed from manifests), and **Conventions**/**Notes** (user-owned; the agent asks before
+  editing either).
+- `.claude/hooks/cortex-stop.sh` — `Stop` hook and the system's only decision point. Fires once
+  per turn, reads the touch record left by `cortex-file-change.sh`, and blocks once if the map
+  needs reconciling before returning control. Stateless by design: every turn is evaluated fresh.
+  Every suggested command is single-quoted around the folder name it targets, so an unusual name
+  (spaces, `$(...)`, quotes) can never be misread as shell syntax by the agent that runs it.
+- `/cortex-sync` — the single command for building and maintaining the map. Idempotent: it
+  generates the whole map on a fresh project and only closes gaps on a mature one. Replaces the
+  `cortex-init`/`cortex-update` split.
+
+### Changed
+- Map granularity is now per folder: `MAP.md` documents every directory with a one-line
+  description of what it contains, never a file name or naming pattern.
+- `MAP.md` is written only by `cortex-map.sh` — no other script or hand-edit may touch it.
+- `cortex-scan.sh`'s enumeration is NUL-delimited end to end, so a folder name holding a space,
+  a non-ASCII character, or a stray quote reaches every caller (the map, `--drift`, the tech
+  stack histogram) exactly as it exists on disk — never quoted, escaped, or split across lines
+  by the scanning tool itself.
+- `cortex-subagent.sh` (`SubagentStart`) now injects the full three-file context (`SYSTEM.md`,
+  `PROJECT.md`, `MAP.md`) into subagents instead of a short note.
+- `cortex-file-change.sh` (`PostToolUse`) is now a mute collector: it records touched paths per
+  session and makes no decisions, emits no reminders, and never interrupts the agent — all
+  decision-making moved to the new `Stop` hook.
+
+### Removed
+- Flat/hierarchical map modes, areas, `.cortex/maps/`, `index.json`, and per-area sub-maps.
+- `.cortex/scripts/cortex-init.sh` and `.cortex/scripts/cortex-areas.sh`.
+- The `cortex-init`, `cortex-update` and `cortex-view-map` commands and their templates
+  (`.cortex/commands/`, `.claude/commands/`, `.opencode/commands/`).
+- `.claude/hooks/cortex-map-load.sh` and the `PreToolUse` hook it was registered under.
+
 ## [4.2.0] — 2026-07-23
 
 ### Added
@@ -168,7 +224,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v4.2.0...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/MaverickLBP/cortex/compare/v4.2.0...v5.0.0
 [4.2.0]: https://github.com/MaverickLBP/cortex/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/MaverickLBP/cortex/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/MaverickLBP/cortex/compare/v3.1.0...v4.0.0

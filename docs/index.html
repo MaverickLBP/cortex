@@ -102,9 +102,8 @@
               <i class="material-icons feature-icon blue-text text-accent-2">map</i>
               <span class="card-title">Living Knowledge Map</span>
               <p>
-                Every file documented with a one-line purpose. <code>MAP.md</code>
-                stays a lightweight index and scales with your repo — flat for small
-                projects, a hierarchy of on-demand area maps for large ones.
+                Every folder documented with a one-line purpose of what it contains.
+                One map, always loaded in full — no partitioning by project size.
               </p>
             </div>
           </div>
@@ -139,10 +138,10 @@
               <i class="material-icons feature-icon purple-text text-accent-2">extension</i>
               <span class="card-title">Native Enforcement</span>
               <p>
-                Deep integration with Claude Code (SessionStart, PostToolUse,
-                SubagentStart, and PreToolUse hooks) and OpenCode (<code>opencode.json</code> instructions).
-                Knowledge loads at every session start, and Claude Code agents get
-                active reminders to keep the map current.
+                Deep integration with Claude Code (SessionStart, SubagentStart, PostToolUse
+                and Stop hooks) and OpenCode (<code>opencode.json</code> instructions).
+                Knowledge loads at every session start, and the Stop hook blocks once per
+                turn if the map needs reconciling.
               </p>
             </div>
           </div>
@@ -183,14 +182,14 @@
         <div class="col s12 m4">
           <div class="step-card center-align">
             <div class="step-number green accent-2 white-text">2</div>
-            <h5>Initialize</h5>
+            <h5>Work</h5>
             <p class="grey-text text-darken-1">
-              The agent scans your project, detects the tech stack, and builds
-              <code>MAP.md</code> — splitting large repos into per-area maps it
-              loads on demand.
+              Just start working. The agent consults <code>MAP.md</code> every session,
+              and reconciles it as folders are added, changed, or removed —
+              no separate initialization step.
             </p>
             <div class="code-block">
-              <code>/cortex-init</code>
+              <code>/cortex-sync</code>
             </div>
             <p class="grey-text text-darken-2" style="margin-top: 10px; font-size: 0.85rem;">
               Claude Code and OpenCode — same command
@@ -200,13 +199,13 @@
         <div class="col s12 m4">
           <div class="step-card center-align">
             <div class="step-number orange accent-2 white-text">3</div>
-            <h5>Work</h5>
+            <h5>Stay in sync</h5>
             <p class="grey-text text-darken-1">
-              The agent consults <code>MAP.md</code> on every session — finding files,
-              understanding structure, and keeping the map updated.
+              Run <code>/cortex-sync</code> to reconcile the map after changes made outside a
+              session — a <code>git pull</code>, folders created by hand, a branch switch.
             </p>
             <div class="code-block">
-              <code>/cortex-view-map</code>
+              <code>/cortex-sync</code>
             </div>
           </div>
         </div>
@@ -222,58 +221,28 @@
       <div class="section-header center-align">
         <h2>Commands</h2>
         <p class="section-desc grey-text text-darken-1">
-          Three commands to manage your project's knowledge layer.
+          One command to reconcile your project's knowledge layer.
         </p>
       </div>
 
       <div class="row equal-height">
-        <div class="col s12 m4">
+        <div class="col s12 m6 offset-m3">
           <div class="command-card card hoverable">
             <div class="card-content">
-              <span class="command-badge blue white-text">init</span>
-              <span class="card-title">cortex-init</span>
+              <span class="command-badge blue white-text">sync</span>
+              <span class="card-title">cortex-sync</span>
               <p>
-                First-run project scanner. Walks the entire directory tree,
-                detects the tech stack, and generates <code>MAP.md</code> from scratch.
+                Reconciles <code>MAP.md</code> and <code>PROJECT.md</code> with what is
+                actually on disk. Idempotent: on a fresh project everything is missing,
+                so it generates the whole map; on a mature one it only closes the
+                gaps — adds folders that appeared, removes folders that are gone, and
+                refreshes the Tech Stack table. There is no separate initialization
+                command.
               </p>
               <div class="divider"></div>
               <p class="grey-text text-darken-1" style="margin-top: 12px;">
-                <strong>Claude Code:</strong> <code>/cortex-init</code><br>
-                <strong>OpenCode:</strong> <code>/cortex-init</code>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col s12 m4">
-          <div class="command-card card hoverable">
-            <div class="card-content">
-              <span class="command-badge green white-text">update</span>
-              <span class="card-title">cortex-update</span>
-              <p>
-                Incremental maintenance. Preserves all existing content and only
-                adds, removes, or updates what has changed since last scan.
-              </p>
-              <div class="divider"></div>
-              <p class="grey-text text-darken-1" style="margin-top: 12px;">
-                <strong>Claude Code:</strong> <code>/cortex-update</code><br>
-                <strong>OpenCode:</strong> <code>/cortex-update</code>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col s12 m4">
-          <div class="command-card card hoverable">
-            <div class="card-content">
-              <span class="command-badge orange white-text">view</span>
-              <span class="card-title">cortex-view-map</span>
-              <p>
-                Display the current knowledge map. Supports optional path filter
-                to show only a specific section of the project.
-              </p>
-              <div class="divider"></div>
-              <p class="grey-text text-darken-1" style="margin-top: 12px;">
-                <strong>Claude Code:</strong> <code>/cortex-view-map</code><br>
-                <strong>OpenCode:</strong> <code>/cortex-view-map</code>
+                <strong>Claude Code:</strong> <code>/cortex-sync</code><br>
+                <strong>OpenCode:</strong> <code>/cortex-sync</code>
               </p>
             </div>
           </div>
@@ -308,12 +277,12 @@
               <tr>
                 <td><strong>Claude Code</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td>SessionStart, PostToolUse, SubagentStart &amp; PreToolUse hooks + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
+                <td>SessionStart, SubagentStart, PostToolUse &amp; Stop hooks + slash command (<code>/cortex-sync</code>)</td>
               </tr>
               <tr>
                 <td><strong>OpenCode</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td><code>opencode.json</code> auto-loads knowledge at session start + slash commands (<code>/cortex-init</code>, <code>/cortex-update</code>, <code>/cortex-view-map</code>)</td>
+                <td><code>opencode.json</code> auto-loads knowledge at session start + slash command (<code>/cortex-sync</code>); no hooks, so map maintenance is followed by instruction alone</td>
               </tr>
             </tbody>
           </table>
@@ -378,12 +347,11 @@
           <div class="card install-bottom-card hoverable">
             <div class="card-content">
               <span class="card-title">After Installing</span>
-              <p class="grey-text text-darken-1" style="font-size: 0.9rem; margin-bottom: 8px;">Commands work the same in Claude Code and OpenCode:</p>
+              <p class="grey-text text-darken-1" style="font-size: 0.9rem; margin-bottom: 8px;">Works the same in Claude Code and OpenCode:</p>
               <ol class="browser-default" style="padding-left: 20px;">
-                <li>Start a new session with your agent</li>
-                <li>Run <code>/cortex-init</code> to generate the knowledge map</li>
-                <li>Run <code>/cortex-view-map</code> to display the map</li>
-                <li>Run <code>/cortex-update</code> after adding or removing files</li>
+                <li>Start a new session with your agent — just work, there's no required first step</li>
+                <li>On Claude Code, the <code>Stop</code> hook prompts the agent to reconcile the map at the end of any turn that touched files</li>
+                <li>Run <code>/cortex-sync</code> to reconcile the map after changes made outside a session — a <code>git pull</code>, folders created by hand, a branch switch</li>
               </ol>
             </div>
           </div>

@@ -24,7 +24,7 @@ Thank you for your interest in contributing. CORTEX is designed to be lightweigh
 1. Fork the repository.
 2. Create a branch from `main` with a descriptive name:
    ```
-   git checkout -b fix/install-cortex-update
+   git checkout -b fix/install-cortex-sync
    git checkout -b feat/add-cortex-diff
    ```
 3. Make your changes. Follow the existing style and conventions.
@@ -36,7 +36,7 @@ Thank you for your interest in contributing. CORTEX is designed to be lightweigh
 5. Commit with a conventional commit message:
    ```
    feat: add cortex-diff command
-   fix: install cortex-update in install.sh
+   fix: install cortex-sync in install.sh
    docs: update README with new badges
    ```
 6. Open a pull request against `main`.
@@ -83,10 +83,9 @@ echo '{"cwd":"/tmp/test-project"}' | bash /tmp/test-project/.claude/hooks/cortex
 
 If you change the MAP.md template or structure:
 
-1. Update `cortex-init.md` to reflect the new format.
-2. Update `cortex-update.md` to detect and migrate to the new format.
-3. Bump the version in `SYSTEM.md`.
-4. Add an entry to `CHANGELOG.md`.
+1. Update `cortex-map.sh` and `cortex-sync.md` to reflect the new format.
+2. Bump the version in `SYSTEM.md`.
+3. Add an entry to `CHANGELOG.md`.
 
 ## Commit message conventions
 
