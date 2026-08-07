@@ -1,7 +1,7 @@
 # CORTEX — System Instructions
 
 > System file — **do not modify manually.**
-> Version: 5.0.1
+> Version: 5.0.2
 > Knowledge layer for AI coding agents.
 
 ---

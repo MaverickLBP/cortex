@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.2] — 2026-08-07
+
+### Fixed
+- `MAP.md`'s node tree is now wrapped in a fenced code block. Without it, every Markdown
+  renderer (GitHub, GitLab, ...) collapses the indented tree into a single unreadable paragraph,
+  since consecutive indented lines with no blank line between them merge into one paragraph
+  rather than preserving line breaks. `cortex-map.sh --set`/`--remove` inject the fence on
+  write, self-healing any map written before this existed the next time it is touched — no
+  manual migration needed.
+
 ## [5.0.1] — 2026-08-07
 
 ### Fixed
@@ -233,7 +243,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.2...HEAD
+[5.0.2]: https://github.com/MaverickLBP/cortex/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/MaverickLBP/cortex/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/MaverickLBP/cortex/compare/v4.2.0...v5.0.0
 [4.2.0]: https://github.com/MaverickLBP/cortex/compare/v4.1.0...v4.2.0

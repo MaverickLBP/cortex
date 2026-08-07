@@ -246,7 +246,7 @@ rsrc/  Application source.
 tests/  Test suites.
 EOF
 CORTEX_MAP_FILE="$SETM" bash "$MAPSH" --set "rsrc/modules/billing" "Billing: invoice issuing."
-body="$(grep -v '^#' "$SETM" | grep -v '^>' | grep -v '^[[:space:]]*$')"
+body="$(grep -v '^#' "$SETM" | grep -v '^>' | grep -v '^[[:space:]]*$' | grep -vF '```')"
 assert_eq "billing inserted under modules with 4-space indent" \
   "$(echo "$body" | sed -n '3p')" "    billing/  Billing: invoice issuing."
 assert_eq "tests stays last" "$(echo "$body" | sed -n '4p')" "tests/  Test suites."

@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────
 # CORTEX — cortex-map: sole owner of the MAP.md format.
-# MAP.md is an indented folder tree (two spaces per level):
+# MAP.md is an indented folder tree (two spaces per level), wrapped in a
+# fenced code block so the indentation survives Markdown rendering —
+# unfenced, consecutive indented lines collapse into one paragraph in every
+# Markdown renderer (GitHub, GitLab, ...), losing the tree structure:
+#     ```
 #     rsrc/  Application source.
 #       modules/  Business features, one folder per feature.
+#     ```
 # Indentation is STRUCTURE, not formatting: paths are
 # reconstructed from it. Nothing else may write this file.
 # Usage: cortex-map.sh --validate|--lookup <dir>|--set <dir> <desc>
 #                      |--remove <dir>|--drift [ROOT]|--check <dir>
 # ──────────────────────────────────────────────────────
 set -uo pipefail
+
+# The fence marker, in ONE place. Held in a variable rather than typed
+# literally at each use site because three backticks inside double quotes
+# would otherwise be read as (invalid) command substitution syntax.
+FENCE='```'
 
 # Character classification below decides which names are representable, so it is
 # pinned to the C locale: in an 8-bit locale (ISO-8859-*) the bytes 0x80-0x9F
@@ -127,8 +137,18 @@ map_write() {
       { print }' "$MAP")"
   fi
   if [ -z "$header" ]; then
-    header="$(printf '# Knowledge Map\n\n> Folder-level map. Every folder containing tracked files appears here.\n> Generated and maintained by cortex-map.sh. Do not edit by hand.\n')"
+    header="$(printf '# Knowledge Map\n\n> Folder-level map. Every folder containing tracked files appears here.\n> Generated and maintained by cortex-map.sh. Do not edit by hand.\n\n%s' "$FENCE")"
   fi
+  # A map written before the fence existed has it missing from its preserved
+  # header (the header capture above stops at the first node line, so a
+  # legacy header ends in the '>' blurb, not a fence). Inject the opening
+  # fence so every write — not just fresh ones — self-heals into the fenced
+  # form. A header that already ends in the fence (the normal case on every
+  # write after the first) is left alone.
+  case "$header" in
+    *"$FENCE") : ;;
+    *) header="${header}"$'\n'"$FENCE" ;;
+  esac
   printf '%s\n' "$header" > "$tmp"
   if [ -n "$records" ]; then
     printf '%s\n' "$records" | awk -F'\t' '{
@@ -138,6 +158,7 @@ map_write() {
       printf("%s%s/  %s\n", indent, parts[n], $2)
     }' >> "$tmp"
   fi
+  printf '%s\n' "$FENCE" >> "$tmp"
   parsed="$(map_parse "$tmp" 2>/dev/null)"
   if [ "$parsed" != "$records" ]; then
     echo "cortex-map: refusing to write a MAP.md that does not read back as written; the map is unchanged" >&2
