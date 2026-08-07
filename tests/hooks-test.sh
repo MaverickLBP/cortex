@@ -175,7 +175,7 @@ echo "── cortex-file-change.sh: writes outside the project root ──"
 # --validate with no sanctioned repair (MAP.md hand-editing is forbidden).
 OUTSIDE_TARGET="/tmp/cortex-regression-outside-$$.js"
 echo "x" > "$OUTSIDE_TARGET"
-REC_OUT="$TMP/fc/.cortex/.touched-outsidetest"
+REC_OUT="$TMP/fc/.cortex/.touched/outsidetest"
 rm -f "$REC_OUT"
 run_hook "$FILECHANGE_HOOK" "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$OUTSIDE_TARGET\"},\"cwd\":\"$TMP/fc\",\"session_id\":\"outsidetest\"}" "$TMP/fc"
 assert_silent "filechange: write outside project root is silent" "$OUT"
@@ -197,7 +197,7 @@ stopout="$(printf '{"cwd":"%s","session_id":"outsidetest","stop_hook_active":fal
 assert_not_contains "stop: a stray absolute-path record never triggers a block on '/tmp'" "$stopout" '"decision":"block"'
 rm -f "$REC_OUT"
 
-REC_DOT="$TMP/fc/.cortex/.touched-dottest"
+REC_DOT="$TMP/fc/.cortex/.touched/dottest"
 printf 'T\t./src/x.js\n' > "$REC_DOT"
 dotstopout="$(printf '{"cwd":"%s","session_id":"dottest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_not_contains "stop: a stray dot-prefixed record never triggers a block" "$dotstopout" '"decision":"block"'
@@ -207,7 +207,7 @@ rm -f "$REC_DOT"
 # its slash — so reject_escaped() must pass it through and the Stop hook must
 # surface it. Dropping it would leave the folder permanently unmappable with no
 # signal that anything was skipped.
-REC_WS="$TMP/fc/.cortex/.touched-wstest"
+REC_WS="$TMP/fc/.cortex/.touched/wstest"
 printf 'T\tmy docs/f.js\n' > "$REC_WS"
 wsstopout="$(printf '{"cwd":"%s","session_id":"wstest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_contains "stop: a space-named folder is surfaced, not silently skipped" "$wsstopout" 'my docs'
@@ -216,7 +216,7 @@ rm -f "$REC_WS"
 # A control character is the genuinely unrepresentable case, and it stays
 # filtered: validate_target() refuses it, so surfacing one would hand the agent
 # a --set that cannot succeed.
-REC_CTL="$TMP/fc/.cortex/.touched-ctltest"
+REC_CTL="$TMP/fc/.cortex/.touched/ctltest"
 printf 'T\tsrc/a\rb/f.js\n' > "$REC_CTL"
 ctlstopout="$(printf '{"cwd":"%s","session_id":"ctltest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_not_contains "stop: a stray control-character record never triggers a block" "$ctlstopout" '"decision":"block"'
@@ -227,14 +227,14 @@ rm -f "$REC_CTL"
 # or one holding a backtick execute, and a name holding a double quote produces
 # shell the agent simply cannot run. Neither is hypothetical: both shapes are
 # legal folder names and both round-trip through MAP.md.
-REC_INJ="$TMP/fc/.cortex/.touched-injtest"
+REC_INJ="$TMP/fc/.cortex/.touched/injtest"
 printf 'T\t$(id)/f.js\n' > "$REC_INJ"
 injout="$(printf '{"cwd":"%s","session_id":"injtest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_contains "stop: suggests a single-quoted target" "$injout" "--set '\$(id)'"
 assert_not_contains "stop: never suggests a double-quoted target a shell would expand" "$injout" '--set \"$(id)\"'
 rm -f "$REC_INJ"
 
-REC_DQ="$TMP/fc/.cortex/.touched-dqtest"
+REC_DQ="$TMP/fc/.cortex/.touched/dqtest"
 printf 'T\tsay"hi/f.js\n' > "$REC_DQ"
 dqout="$(printf '{"cwd":"%s","session_id":"dqtest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_contains "stop: a double-quote in a folder name stays inside single quotes" "$dqout" "--set 'say\\\"hi'"
@@ -243,14 +243,14 @@ rm -f "$REC_DQ"
 # The hook must never suggest a command cortex-map.sh would refuse. It used to
 # re-derive a subset of the representability rule in reject_escaped(), which is
 # the same drift behind every earlier bug in this family — it now asks --check.
-REC_UNREP="$TMP/fc/.cortex/.touched-unreptest"
+REC_UNREP="$TMP/fc/.cortex/.touched/unreptest"
 printf 'T\t lead/f.js\nT\t#tmp/g.js\n' > "$REC_UNREP"
 unrepout="$(printf '{"cwd":"%s","session_id":"unreptest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_not_contains "stop: never suggests --set for a leading-space folder" "$unrepout" "--set ' lead'"
 assert_not_contains "stop: never suggests --set for a '#'-prefixed top-level folder" "$unrepout" "--set '#tmp'"
 rm -f "$REC_UNREP"
 
-REC_SQ="$TMP/fc/.cortex/.touched-sqtest"
+REC_SQ="$TMP/fc/.cortex/.touched/sqtest"
 printf "T\tit's/f.js\n" > "$REC_SQ"
 sqout="$(printf '{"cwd":"%s","session_id":"sqtest","stop_hook_active":false}' "$TMP/fc" | bash "$STOP_HOOK_FOR_OUTSIDE" 2>/dev/null)"
 assert_contains "stop: an apostrophe in a folder name is escaped, not left open" "$sqout" "'it'\\\\''s'"
@@ -258,7 +258,7 @@ rm -f "$REC_SQ"
 
 echo ""
 echo "── cortex-file-change.sh: embedded and leading '.'/'..' segments ──"
-REC_NORM="$TMP/fc/.cortex/.touched-normtest"
+REC_NORM="$TMP/fc/.cortex/.touched/normtest"
 
 rm -f "$REC_NORM"
 echo x > "$TMP/fc/src/h.js"
@@ -402,7 +402,7 @@ echo "== collector: records writes and edits identically as T =="
 FC="$REPO_ROOT/.claude/hooks/cortex-file-change.sh"
 CP="$TMP/collproj"; mkdir -p "$CP/.cortex/scripts" "$CP/src/api"
 printf 'x\n' > "$CP/.cortex/SYSTEM.md"
-REC="$CP/.cortex/.touched-sess1"
+REC="$CP/.cortex/.touched/sess1"
 rm -f "$REC"
 wout="$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s/src/api/h.js"},"cwd":"%s","session_id":"sess1"}' "$CP" "$CP" | bash "$FC")"
 eout="$(printf '{"tool_name":"Edit","tool_input":{"file_path":"%s/src/api/g.js"},"cwd":"%s","session_id":"sess1"}' "$CP" "$CP" | bash "$FC")"
@@ -436,7 +436,7 @@ printf '{"tool_name":"Write","tool_input":{"file_path":"%s/node_modules/x/i.js"}
 [ ! -s "$REC" ] && ok "excluded paths produce no record" || no "excluded paths produce no record" "$(cat "$REC")"
 
 echo "== collector: records are per-session =="
-rm -f "$REC" "$CP/.cortex/.touched-sess2"
+rm -f "$REC" "$CP/.cortex/.touched/sess2"
 printf '{"tool_name":"Write","tool_input":{"file_path":"%s/src/api/s1.js"},"cwd":"%s","session_id":"sess1"}' "$CP" "$CP" | bash "$FC" >/dev/null
 printf '{"tool_name":"Write","tool_input":{"file_path":"%s/src/api/s2.js"},"cwd":"%s","session_id":"sess2"}' "$CP" "$CP" | bash "$FC" >/dev/null
 assert_contains "sess1 has its own file" "$(cat "$REC")" "s1.js"
@@ -446,16 +446,16 @@ echo "== collector: non-CORTEX project ignored =="
 NC="$TMP/nocortex"; mkdir -p "$NC/src"
 nout="$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s/src/x.js"},"cwd":"%s","session_id":"sess1"}' "$NC" "$NC" | bash "$FC")"
 assert_silent "non-CORTEX silent" "$nout"
-[ ! -f "$NC/.cortex/.touched-sess1" ] && ok "no record outside CORTEX" || no "no record outside CORTEX" "record created"
+[ ! -f "$NC/.cortex/.touched/sess1" ] && ok "no record outside CORTEX" || no "no record outside CORTEX" "record created"
 
 echo "== stop: silent when the record is empty =="
 STOP="$REPO_ROOT/.claude/hooks/cortex-stop.sh"
-STP="$TMP/stopproj"; mkdir -p "$STP/.cortex/scripts" "$STP/src/api"
+STP="$TMP/stopproj"; mkdir -p "$STP/.cortex/scripts" "$STP/.cortex/.touched" "$STP/src/api"
 cp "$REPO_ROOT/.cortex/scripts/cortex-map.sh"  "$STP/.cortex/scripts/"
 cp "$REPO_ROOT/.cortex/scripts/cortex-scan.sh" "$STP/.cortex/scripts/"
 printf 'x\n' > "$STP/.cortex/SYSTEM.md"
 printf '# Knowledge Map\n\n> map\n\nsrc/  Application source.\n  api/  HTTP handlers.\n' > "$STP/.cortex/MAP.md"
-SREC="$STP/.cortex/.touched-s1"
+SREC="$STP/.cortex/.touched/s1"
 rm -f "$SREC"
 o1="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$STP" | bash "$STOP")"
 assert_silent "empty record is silent" "$o1"
@@ -499,12 +499,12 @@ o7="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$STP" | 
 assert_contains "same folder reported again (statelessness is the contract)" "$o7" "src/api"
 
 echo "== stop: takes no action when the map is malformed =="
-BADP="$TMP/badmap"; mkdir -p "$BADP/.cortex/scripts"
+BADP="$TMP/badmap"; mkdir -p "$BADP/.cortex/scripts" "$BADP/.cortex/.touched"
 cp "$REPO_ROOT/.cortex/scripts/cortex-map.sh" "$BADP/.cortex/scripts/"
 cp "$REPO_ROOT/.cortex/scripts/cortex-scan.sh" "$BADP/.cortex/scripts/"
 printf 'x\n' > "$BADP/.cortex/SYSTEM.md"
 printf '# m\n\nsrc/  Source.\n   api/  Odd indent.\n' > "$BADP/.cortex/MAP.md"
-printf 'T\tsrc/api/x.js\n' > "$BADP/.cortex/.touched-s1"
+printf 'T\tsrc/api/x.js\n' > "$BADP/.cortex/.touched/s1"
 o8="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$BADP" | bash "$STOP")"
 assert_not_contains "does not block on a malformed map" "$o8" '"decision":"block"'
 assert_contains "reports the format problem" "$o8" "validate"
@@ -527,9 +527,9 @@ o11="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$STP" |
 assert_silent "root-level file does not surface a folder report" "$o11"
 
 echo "== stop: malformed map does not discard the turn's record =="
-printf 'T\tsrc/api/x.js\n' > "$BADP/.cortex/.touched-s1"
+printf 'T\tsrc/api/x.js\n' > "$BADP/.cortex/.touched/s1"
 o12="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$BADP" | bash "$STOP")"
-[ -s "$BADP/.cortex/.touched-s1" ] && ok "record survives the malformed-map turn" \
+[ -s "$BADP/.cortex/.touched/s1" ] && ok "record survives the malformed-map turn" \
   || no "record survives the malformed-map turn" "record was truncated"
 
 echo "== stop: rm -rf of a whole mapped directory suggests --remove for it =="

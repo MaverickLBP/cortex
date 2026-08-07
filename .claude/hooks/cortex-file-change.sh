@@ -49,7 +49,8 @@ find_project() {
 }
 
 PROJ="$(find_project "$CWD")" || exit 0
-REC="$PROJ/.cortex/.touched-$SID"
+REC="$PROJ/.cortex/.touched/$SID"
+mkdir -p "$PROJ/.cortex/.touched" 2>/dev/null || exit 0
 
 is_excluded() {
   case "/$1/" in

@@ -19,4 +19,4 @@ Thumbs.db
 docs/superpowers/
 
 # CORTEX session touch records (ephemeral)
-.cortex/.touched-*
+.cortex/.touched/

@@ -40,7 +40,7 @@ find_project() {
 }
 
 PROJ="$(find_project "$CWD")" || exit 0
-REC="$PROJ/.cortex/.touched-$SID"
+REC="$PROJ/.cortex/.touched/$SID"
 [ -s "$REC" ] || exit 0
 
 MAPSH="$PROJ/.cortex/scripts/cortex-map.sh"
@@ -169,7 +169,7 @@ if awk -F'\t' '$1=="M"' "$REC" | grep -q .; then
 "
 fi
 
-: > "$REC"
+rm -f "$REC"
 
 [ -z "$MSG" ] && exit 0
 

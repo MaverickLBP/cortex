@@ -156,7 +156,7 @@ assert_eq "Stop not duplicated" "$sreg2" "$sreg"
 
 echo "== install: gitignores the touch record but not the knowledge files =="
 gi="$(cat "$I/.gitignore" 2>/dev/null || true)"
-assert_has "touch record ignored" "$gi" ".cortex/.touched-"
+assert_has "touch record ignored" "$gi" ".cortex/.touched/"
 assert_no "MAP.md not ignored" "$gi" ".cortex/MAP.md"
 assert_no "PROJECT.md not ignored" "$gi" ".cortex/PROJECT.md"
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1] — 2026-08-07
+
+### Fixed
+- Session touch records (`.cortex/.touched-<session_id>`) now live under `.cortex/.touched/<session_id>`
+  instead of as loose dotfiles directly in `.cortex/`. The Stop hook also deletes the record file once
+  reconciled instead of truncating it to empty, so no zero-byte file lingers between turns.
+  `install.sh` migrates the old `.gitignore` glob (`.cortex/.touched-*`) to the new directory-based
+  rule (`.cortex/.touched/`) on existing installs.
+
 ## [5.0.0] — 2026-08-03
 
 ### Breaking changes
@@ -224,7 +233,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/MaverickLBP/cortex/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/MaverickLBP/cortex/compare/v4.2.0...v5.0.0
 [4.2.0]: https://github.com/MaverickLBP/cortex/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/MaverickLBP/cortex/compare/v4.0.0...v4.1.0

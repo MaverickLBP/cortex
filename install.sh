@@ -267,9 +267,14 @@ install_claude() {
     echo ".claude/settings.local.json" >> "$gitignore"
     ok "Added .claude/settings.local.json to .gitignore"
   fi
-  grep -qF '.cortex/.touched-' "$gitignore" 2>/dev/null || {
-    printf '\n# CORTEX session touch records (ephemeral)\n.cortex/.touched-*\n' >> "$gitignore"
-    ok "Added .cortex/.touched-* to .gitignore"
+  # Older installs ignored the flat '.cortex/.touched-*' glob; records now live
+  # under '.cortex/.touched/' instead, so migrate the stale line forward.
+  if grep -qxF '.cortex/.touched-*' "$gitignore" 2>/dev/null; then
+    sed -i '/^\.cortex\/\.touched-\*$/d' "$gitignore"
+  fi
+  grep -qF '.cortex/.touched/' "$gitignore" 2>/dev/null || {
+    printf '\n# CORTEX session touch records (ephemeral)\n.cortex/.touched/\n' >> "$gitignore"
+    ok "Added .cortex/.touched/ to .gitignore"
   }
 }
 
