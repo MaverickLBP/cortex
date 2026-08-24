@@ -245,7 +245,12 @@ case "$MODE" in
     TARGET="${1:-}"
     [ -n "$TARGET" ] || { echo "cortex-map: --lookup needs a directory" >&2; exit 2; }
     TARGET="${TARGET%/}"
-    FOUND="$(map_parse | CX_T="$TARGET" awk -F'\t' '$1 == ENVIRON["CX_T"] { print $2; found=1; exit } END { exit !found }')" \
+    # No early `exit` in the match action, deliberately (CTR-12620): exiting
+    # before EOF closes the pipe under map_parse, which dies with SIGPIPE, and
+    # `pipefail` then makes this whole pipeline 141 — so the && below never
+    # runs and a folder that IS mapped is reported MISSING. Paths are unique,
+    # so draining to EOF costs one full scan and changes nothing else.
+    FOUND="$(map_parse | CX_T="$TARGET" awk -F'\t' '$1 == ENVIRON["CX_T"] { print $2; found=1 } END { exit !found }')" \
       && { printf '%s\n' "$FOUND"; exit 0; }
     echo "MISSING"
     exit 1

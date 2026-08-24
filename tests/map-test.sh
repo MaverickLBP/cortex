@@ -234,6 +234,46 @@ assert_eq "lookup absent folder prints MISSING" "$d4" "MISSING"
 CORTEX_MAP_FILE="$LM" bash "$MAPSH" --lookup rsrc/modules/invoicing >/dev/null 2>&1 \
   && no "lookup MISSING exits non-zero" "exited 0" || ok "lookup MISSING exits non-zero"
 
+echo "== map: lookup finds an early node in a large map (CTR-12620 SIGPIPE regression) =="
+# The bug is positional. map_parse streams the whole map into a consumer that
+# exits the moment it matches; the producer then takes SIGPIPE, and pipefail
+# turns 141 into the pipeline's status, so --lookup falls through to MISSING
+# even though it already captured the right description.
+#
+# It only reproduces when the producer still has data to write after the
+# consumer leaves, so the fixture has to be big enough to outlast one buffer
+# flush. Every other lookup fixture in this file is a handful of nodes, which
+# is exactly why the suite passed against the broken script for so long.
+BIGM="$TMP/bigmap/.cortex/MAP.md"
+{
+  i=0
+  while [ "$i" -lt 500 ]; do
+    printf 'n%03d/  Node %03d.\n' "$i" "$i"
+    i=$((i + 1))
+  done
+} | mk_map "$BIGM"
+
+early="$(CORTEX_MAP_FILE="$BIGM" bash "$MAPSH" --lookup n000 || true)"
+assert_eq "lookup finds the first node of a large map" "$early" "Node 000."
+
+middle="$(CORTEX_MAP_FILE="$BIGM" bash "$MAPSH" --lookup n250 || true)"
+assert_eq "lookup finds a middle node of a large map" "$middle" "Node 250."
+
+CORTEX_MAP_FILE="$BIGM" bash "$MAPSH" --lookup n000 >/dev/null 2>&1 \
+  && ok "lookup of an early node exits zero" || no "lookup of an early node exits zero" "exited non-zero"
+
+# Pins the behaviour that worked by accident: the last node was the only one
+# the producer could finish writing before the consumer exited. A future
+# rewrite must not lose it.
+last="$(CORTEX_MAP_FILE="$BIGM" bash "$MAPSH" --lookup n499 || true)"
+assert_eq "lookup still finds the last node of a large map" "$last" "Node 499."
+
+# Guards against "fixing" this by making --lookup always succeed.
+absent="$(CORTEX_MAP_FILE="$BIGM" bash "$MAPSH" --lookup n999 || true)"
+assert_eq "lookup of an absent folder in a large map still prints MISSING" "$absent" "MISSING"
+CORTEX_MAP_FILE="$BIGM" bash "$MAPSH" --lookup n999 >/dev/null 2>&1 \
+  && no "lookup MISSING in a large map exits non-zero" "exited 0" || ok "lookup MISSING in a large map exits non-zero"
+
 echo "== map: lookup does not match a bare basename =="
 d5="$(CORTEX_MAP_FILE="$LM" bash "$MAPSH" --lookup styles || true)"
 assert_eq "bare basename does not resolve" "$d5" "MISSING"
