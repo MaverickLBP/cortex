@@ -260,7 +260,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.2...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.3...HEAD
+[5.0.3]: https://github.com/MaverickLBP/cortex/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/MaverickLBP/cortex/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/MaverickLBP/cortex/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/MaverickLBP/cortex/compare/v4.2.0...v5.0.0

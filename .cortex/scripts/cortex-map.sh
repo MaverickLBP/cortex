@@ -248,9 +248,10 @@ case "$MODE" in
     # No early `exit` in the match action, deliberately (CTR-12620): exiting
     # before EOF closes the pipe under map_parse, which dies with SIGPIPE, and
     # `pipefail` then makes this whole pipeline 141 — so the && below never
-    # runs and a folder that IS mapped is reported MISSING. Paths are unique,
-    # so draining to EOF costs one full scan and changes nothing else.
-    FOUND="$(map_parse | CX_T="$TARGET" awk -F'\t' '$1 == ENVIRON["CX_T"] { print $2; found=1 } END { exit !found }')" \
+    # runs and a folder that IS mapped is reported MISSING. `--set` keeps
+    # paths unique, but nothing enforces that on a hand-edited map, so the
+    # print is guarded to the first match while still draining to EOF.
+    FOUND="$(map_parse | CX_T="$TARGET" awk -F'\t' '$1 == ENVIRON["CX_T"] && !found { print $2; found=1 } END { exit !found }')" \
       && { printf '%s\n' "$FOUND"; exit 0; }
     echo "MISSING"
     exit 1

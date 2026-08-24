@@ -497,6 +497,9 @@ echo "== stop: manifest still routes to PROJECT.md with a large touch record =="
 # It needs a record big enough that the producer has not finished writing when
 # the consumer leaves. The test above uses a one-line record, which is why it
 # passes either way.
+#
+# Every line here matches, so awk is still writing when grep leaves — a
+# record with only one M line does not reproduce this no matter how large.
 {
   i=0
   while [ "$i" -lt 10000 ]; do
