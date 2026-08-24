@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.3] — 2026-08-24
+
+### Fixed
+- `cortex-map.sh --lookup` no longer reports a mapped folder as `MISSING` (CTR-12620). The
+  matching `awk` exited as soon as it found its target, which closed the pipe while `map_parse`
+  was still streaming the rest of `MAP.md`; the producer died with SIGPIPE (141) and `pipefail`
+  promoted that to the pipeline's status, so the branch that prints the description never ran.
+  Since the failure depended on how far into the map the target sat, it hit essentially every
+  folder except the last one — and the Stop hook, which calls `--lookup` per touched folder,
+  repeated bogus "not in the map, add it" instructions every turn. The match action now drains
+  its input instead of exiting early; paths are unique, so nothing else changes.
+- The Stop hook's manifest check no longer loses its reminder on long sessions. `awk … | grep -q`
+  had the same interaction — `grep -q` leaves on its first match and can SIGPIPE the `awk` still
+  writing — so once a session's touch record outgrew the pipe buffer, a touched manifest was read
+  as untouched and the PROJECT.md reminder disappeared silently. The check now reads the record
+  directly, with no pipe.
+
 ## [5.0.2] — 2026-08-07
 
 ### Fixed
