@@ -488,6 +488,26 @@ o5="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$STP" | 
 assert_contains "mentions PROJECT.md" "$o5" "PROJECT.md"
 assert_contains "mentions Tech Stack" "$o5" "Tech Stack"
 
+echo "== stop: manifest still routes to PROJECT.md with a large touch record =="
+# Same SIGPIPE + pipefail interaction as CTR-12620: `grep -q` exits on its
+# first match and can kill the awk still writing to it, and pipefail then makes
+# the `if` false — so a touched manifest is read as untouched and the reminder
+# vanishes with no error at all.
+#
+# It needs a record big enough that the producer has not finished writing when
+# the consumer leaves. The test above uses a one-line record, which is why it
+# passes either way.
+{
+  i=0
+  while [ "$i" -lt 10000 ]; do
+    printf 'M\tpackage.json\n'
+    i=$((i + 1))
+  done
+} > "$SREC"
+o5b="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":false}' "$STP" | bash "$STOP")"
+assert_contains "large record still mentions PROJECT.md" "$o5b" "PROJECT.md"
+assert_contains "large record still mentions Tech Stack" "$o5b" "Tech Stack"
+
 echo "== stop: does not block twice in a turn =="
 printf 'T\tsrc/billing/invoice.js\n' > "$SREC"
 o6="$(printf '{"cwd":"%s","session_id":"s1","stop_hook_active":true}' "$STP" | bash "$STOP")"

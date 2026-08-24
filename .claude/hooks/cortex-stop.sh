@@ -163,7 +163,12 @@ while IFS= read -r d; do
 done <<< "$DELETED_PATHS"
 
 # Manifests → PROJECT.md.
-if awk -F'\t' '$1=="M"' "$REC" | grep -q .; then
+# One awk over the file rather than `awk ... | grep -q` (CTR-12620's root cause,
+# second instance): grep -q exits on its first match, which SIGPIPEs the awk
+# still writing, and pipefail turns that into a false `if` — silently dropping
+# the reminder on any session whose record outgrew the pipe buffer. No pipe
+# means no signal.
+if awk -F'\t' '$1=="M" { found=1 } END { exit !found }' "$REC"; then
   MANS="$(awk -F'\t' '$1=="M" { print $2 }' "$REC" | LC_ALL=C sort -u | tr '\n' ' ')"
   MSG="${MSG}• Manifest touched (${MANS%% }) — review the Tech Stack table in .cortex/PROJECT.md.
 "
