@@ -91,8 +91,11 @@ subagents and several verifier subagents in parallel, each with its own worker i
 its instructions. Parents are only served once their subfolders are verified, so near the root there may
 be waits. Without a subagent tool, run both loops yourself with different worker ids.
 
-If a subagent dies and leaves folders claimed, run `bash .cortex/scripts/cortex-describe.sh --requeue-claimed`
-once no worker is alive. A folder stuck as `needs-human` can be sent back with `--reset "<folder>"`
+**With a subagent tool, you never write or verify folders yourself**: an independent second reader is
+the point of the queue. If a worker dies and leaves a folder claimed, the claim expires on its own after
+20 minutes (`--requeue-claimed` releases it at once when no worker is alive); then launch another
+worker for it. Doing the folder yourself, or verifying what you wrote, breaks the guarantee. Only without
+a subagent tool do you play both roles, with different worker ids. A folder stuck as `needs-human` can be sent back with `--reset "<folder>"`
 after you have read the last rejection reason that `--status` prints next to it, and the folder itself.
 
 ### Step 3 — Refresh the Tech Stack
@@ -133,6 +136,10 @@ descriptions changed after verification, and no folder is missing from the queue
 a counts line and one `BLOCKED` line per problem (at most 50): fix those (more writer or verifier
 rounds, `--init` to pick up new folders, `--reset` for `needs-human`) and run it again. If folders stay
 `needs-human`, report "done with exceptions" and list them; never report the sync as complete.
+
+Run `bash .cortex/scripts/cortex-describe.sh --report` and put its numbers in your report: submissions,
+approvals, rejections and the workers of each role. Pass on its `WARNING` lines as they are (for example
+"no folder was rejected out of N verdicts" means the verification may not have judged anything).
 
 Then report: folders described, moved and removed; Tech Stack changes; and, if you wrote them in Step 4,
 the deduced conventions, listed so the user can review them.

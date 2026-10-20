@@ -10,7 +10,7 @@
 #        | --next --role write|verify --worker <id>
 #        | --submit <dir> <desc> --worker <id>
 #        | --verdict <dir> ok|reject <text> --worker <id>
-#        | --status | --reset <dir> | --requeue-claimed | --show <dir>
+#        | --status | --report | --reset <dir> | --requeue-claimed | --show <dir>
 # ──────────────────────────────────────────────────────
 set -uo pipefail
 export LC_ALL=C
@@ -34,7 +34,7 @@ usage: cortex-describe.sh --init [--all] [--restart]
        cortex-describe.sh --next --role write|verify --worker <id>
        cortex-describe.sh --submit <dir> <desc> --worker <id>
        cortex-describe.sh --verdict <dir> ok|reject <text> --worker <id>
-       cortex-describe.sh --status | --reset <dir> | --requeue-claimed | --show <dir>
+       cortex-describe.sh --status | --report | --reset <dir> | --requeue-claimed | --show <dir>
 EOF
   exit 2
 }
@@ -280,6 +280,46 @@ candidates() {
       print "P\t" (role == "write" ? todo : written + cw + todo) + 0 }'
 }
 
+# expire_claims: a claim nobody finished within the lease (default 20 min) belongs to a
+# worker that died or gave up: put the folder back so another worker takes it.
+expire_claims() {
+  local lease="${CORTEX_DESCRIBE_LEASE_MIN:-20}" w f d st
+  [ -d "$S/f" ] || return 0
+  while IFS= read -r w; do
+    [ -n "$w" ] || continue
+    f="$(dirname "$w")"; d="$(cat "$f/path" 2>/dev/null)"; [ -n "$d" ] || continue
+    lock_acquire "$f" || continue
+    if [ -n "$(find "$w" -maxdepth 0 -mmin +"$lease" 2>/dev/null)" ]; then
+      st="$(get_state "$d")"
+      case "$st" in
+        claimed-write) set_state "$d" todo; rm -f "$w" ;;
+        claimed-verify) set_state "$d" written; rm -f "$w" ;;
+      esac
+    fi
+    rmdir "$f/.lock" 2>/dev/null
+  done < <(find "$S/f" -maxdepth 2 -name worker -mmin +"$lease" 2>/dev/null)
+}
+
+# log_event <event> <dir> <worker>: append-only record used by --report.
+log_event() { printf '%s\t%s\t%s\t%s\n' "$(date +%s)" "$1" "$2" "$3" >> "$S/log" 2>/dev/null; return 0; }
+
+# report_cmd: who did what, so a reader can see whether verification really judged anything.
+report_cmd() {
+  [ -f "$S/scope" ] || { echo "cortex-describe: no queue; run --init" >&2; return 1; }
+  [ -f "$S/log" ] || : > "$S/log"
+  awk -F'\t' '
+    $2 == "submit" { sub_n++; wr[$4]++ }
+    $2 == "ok" { ok_n++; vo[$4]++; vs[$4] = 1 }
+    $2 == "reject" { rj_n++; vj[$4]++; vs[$4] = 1 }
+    END {
+      printf "A\tsubmissions=%d approved=%d rejected=%d\n", sub_n, ok_n, rj_n
+      for (w in wr) printf "B\tWRITER %s: %d\n", w, wr[w]
+      for (v in vs) printf "C\tVERIFIER %s: ok=%d rejected=%d\n", v, vo[v] + 0, vj[v] + 0
+      if (ok_n + rj_n >= 10 && rj_n == 0) printf "Z\tWARNING: no folder was rejected out of %d verdicts — check that the verifiers really reviewed the contents\n", ok_n
+      for (v in vs) if (v in wr) printf "Z\tWARNING: worker %s acted as both writer and verifier\n", v
+    }' "$S/log" | LC_ALL=C sort -t "$TAB" -k1,1 -k2,2 | cut -f2-
+}
+
 # next_cmd <role> <worker>: serve the next folder with its digest.
 next_cmd() {
   local role="" worker="" out cands prog dir f
@@ -295,6 +335,7 @@ next_cmd() {
   [ -f "$S/scope" ] || { echo "cortex-describe: no queue; run --init" >&2; return 1; }
   [ -e "$S/done" ] && return 4
   touch_active
+  expire_claims
   out="$(candidates "$role")"
   prog="$(printf '%s\n' "$out" | sed -n "s/^P${TAB}//p")"
   cands="$(printf '%s\n' "$out" | sed -n "s/^C${TAB}//p" | sort -t "$TAB" -k1,1nr -k2,2 | cut -f2-)"
@@ -307,11 +348,13 @@ next_cmd() {
       if [ "$(cat "$f/rejects" 2>/dev/null || echo 0)" -gt 0 ] && [ -s "$f/reason" ]; then
         printf 'REJECTED: %s\n' "$(head -n 1 "$f/reason")"
       fi
+      echo "GUIDE: Say what this folder is FOR, in at most 120 characters and in English, from the contents below. Do not repeat the folder name or path, do not name files, and do not only describe its structure (\"holds X\", \"contains Y\")."
     else
       [ "$(cat "$f/writer" 2>/dev/null)" = "$worker" ] && continue
       claim "$dir" written claimed-verify "$worker" || continue
       printf 'TASK verify %s\n' "$dir"
       printf 'DESCRIPTION: %s\n' "$(head -n 1 "$ROOT/.cortex/map/$dir.cortex" 2>/dev/null)"
+      echo "GUIDE: Approve only if the description is true for the contents below AND tells someone searching by function why to open this folder. Reject it if it only restates the folder name, its location or its structure."
     fi
     digest "$dir"
     return 0
@@ -335,6 +378,7 @@ submit_cmd() {
   printf '%s\n' "$worker" > "$f/writer"
   : > "$f/reason"; rm -f "$f/worker"
   set_state "$dir" written
+  log_event submit "$dir" "$worker"
   rmdir "$f/.lock"
   touch_active
 }
@@ -365,6 +409,7 @@ verdict_cmd() {
     rmdir "$f/.lock"; echo "cortex-describe: $dir is not claimed for verification by $worker" >&2; return 1
   fi
   rm -f "$f/worker"
+  log_event "$kind" "$dir" "$worker"
   if [ "$kind" = ok ]; then
     set_state "$dir" verified
   else
@@ -447,6 +492,7 @@ show_status() {
 
 case "${1:-}" in
   --init) shift; init_queue "$@"; exit $? ;;
+  --report) [ "$#" -eq 1 ] || usage; report_cmd; exit $? ;;
   --status) [ "$#" -eq 1 ] || usage; touch_active_if_queue; show_status; exit $? ;;
   --next) shift; next_cmd "$@"; exit $? ;;
   --submit) shift; submit_cmd "$@"; exit $? ;;

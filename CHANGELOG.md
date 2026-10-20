@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.2] — 2026-10-20
+
+### Added
+- `cortex-describe.sh --report`: submissions, approvals and rejections, plus how many folders each
+  worker wrote or verified, with warnings when no folder was rejected out of 10 or more verdicts and
+  when a worker acted as both writer and verifier. `/cortex-sync` includes it in its final report.
+- `--next` prints a short guide with every task (what a good description says for a writer; what to
+  reject for a verifier), so it reaches subagents whatever prompt they were given.
+
+### Changed
+- A claim nobody finishes within 20 minutes (`CORTEX_DESCRIBE_LEASE_MIN`) returns to the queue on its own,
+  so a dead worker no longer leaves a folder stuck. `/cortex-sync` forbids the main agent from writing or
+  verifying folders when subagents are available: it launches another worker instead. The first
+  end-to-end run on a 994-folder project had the main agent write and verify five folders itself.
+
 ## [6.1.1] — 2026-10-20
 
 ### Changed
@@ -371,7 +386,8 @@ that is a decision rather than something the code shows.
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.1...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.2...HEAD
+[6.1.2]: https://github.com/MaverickLBP/cortex/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/MaverickLBP/cortex/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/MaverickLBP/cortex/compare/v6.0.1...v6.1.0
 [6.0.1]: https://github.com/MaverickLBP/cortex/compare/v6.0.0...v6.0.1

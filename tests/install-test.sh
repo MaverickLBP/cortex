@@ -196,6 +196,7 @@ assert_eq "claude copy byte-identical" "$(cmp -s "$SYNC" "$REPO_ROOT/.claude/com
 sync="$(cat "$SYNC")"
 assert_has "reconcile redirected to a state file" "$sync" "--reconcile > .cortex/.state/reconcile.txt"
 assert_has "completion is gated by the queue status" "$sync" "cortex-describe.sh --status"
+assert_has "report goes in the final report" "$sync" "cortex-describe.sh --report"
 assert_has "read in chunks with awk" "$sync" "awk 'NR>=1 && NR<=200' .cortex/.state/reconcile.txt"
 
 echo "== documented bash floor matches the scripts (3.2, macOS) =="

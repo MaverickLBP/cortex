@@ -389,5 +389,56 @@ for r in 1 2 3; do nd --next --role write --worker w1 >/dev/null; nd --submit so
 assert_has "[$MODE] status prints the last rejection reason" "$(nd --status)" "vague on round 3"
 done
 
+for MODE in git plain; do
+echo "== [$MODE] 6.1.2: guide lines travel with the task =="
+GD="$TMP/guide-$MODE"; mk_project "$GD" "$MODE"; mkf "$GD" alpha
+gdd() { CORTEX_ROOT="$GD" bash "$DESCSH" "$@"; }
+gdd --init >/dev/null
+assert_has "[$MODE] writer gets a guide" "$(gdd --next --role write --worker w1)" "GUIDE: Say what this folder is FOR"
+gdd --submit alpha "Billing invoice rendering" --worker w1 >/dev/null
+assert_has "[$MODE] verifier gets a guide" "$(gdd --next --role verify --worker v1)" "GUIDE: Approve only if"
+
+echo "== [$MODE] 6.1.2: expired claims return to the queue =="
+LS="$TMP/lease-$MODE"; mk_project "$LS" "$MODE"; mkf "$LS" one two
+ld2() { CORTEX_ROOT="$LS" bash "$DESCSH" "$@"; }
+age() { touch -d "$2 minutes ago" "$1" 2>/dev/null || touch -t "$(date -v-"$2"M +%Y%m%d%H%M)" "$1"; }
+ld2 --init >/dev/null
+ld2 --next --role write --worker dead >/dev/null
+assert_eq "[$MODE] a fresh claim is not taken" "$(ld2 --next --role write --worker w2 | head -1)" "TASK write two"
+age "$LS/.cortex/.state/describe/f/one/worker" 30
+assert_eq "[$MODE] a claim older than the lease is served again" "$(ld2 --next --role write --worker w3 | head -1)" "TASK write one"
+assert_eq "[$MODE] and now belongs to the new worker" "$(cat "$LS/.cortex/.state/describe/f/one/worker")" "w3"
+ld2 --submit one "First of two areas" --worker w3 >/dev/null; ld2 --next --role verify --worker v1 >/dev/null
+age "$LS/.cortex/.state/describe/f/one/worker" 30
+ld2 --submit two "Second of two areas" --worker w2 >/dev/null
+assert_eq "[$MODE] an expired verification goes back to written and is re-served" "$(ld2 --next --role verify --worker v2 | head -1)" "TASK verify one"
+
+echo "== [$MODE] 6.1.2: report =="
+RP="$TMP/report-$MODE"; mk_project "$RP" "$MODE"; mkf "$RP" a1 b1
+rpd() { CORTEX_ROOT="$RP" bash "$DESCSH" "$@"; }
+rpd --init >/dev/null
+for d in a1 b1; do rpd --next --role write --worker w1 >/dev/null; rpd --submit "$d" "Description of $d" --worker w1 >/dev/null; done
+rpd --next --role verify --worker v1 >/dev/null; rpd --verdict a1 ok "matches f.js" --worker v1 >/dev/null
+rpd --next --role verify --worker v1 >/dev/null; rpd --verdict b1 reject "too vague" --worker v1 >/dev/null
+ro="$(rpd --report)"; rc=$?
+assert_eq "[$MODE] report exits 0" "$rc" "0"
+assert_has "[$MODE] report totals" "$ro" "submissions=2 approved=1 rejected=1"
+assert_has "[$MODE] report writers" "$ro" "WRITER w1: 2"
+assert_has "[$MODE] report verifiers" "$ro" "VERIFIER v1: ok=1 rejected=1"
+assert_no  "[$MODE] a rejection suppresses the no-rejection warning" "$ro" "WARNING"
+SW="$TMP/warn-$MODE"; mk_project "$SW" "$MODE"; mkf "$SW" $(seq -f 'k%02g' 1 12)
+swd() { CORTEX_ROOT="$SW" bash "$DESCSH" "$@"; }
+swd --init >/dev/null; run_to_completion "$SW"
+assert_has "[$MODE] no rejections among many verdicts is flagged" "$(swd --report)" "WARNING: no folder was rejected out of 12 verdicts"
+DU="$TMP/dual-$MODE"; mk_project "$DU" "$MODE"; mkf "$DU" p1 p2
+dud() { CORTEX_ROOT="$DU" bash "$DESCSH" "$@"; }
+dud --init >/dev/null
+dud --next --role write --worker dual >/dev/null; dud --submit p1 "Area p1 handling" --worker dual >/dev/null
+dud --next --role write --worker w2 >/dev/null; dud --submit p2 "Area p2 handling" --worker w2 >/dev/null
+dud --next --role verify --worker dual >/dev/null; dud --verdict p2 ok "cites f.js" --worker dual >/dev/null
+assert_has "[$MODE] a worker acting in both roles is flagged" "$(dud --report)" "WARNING: worker dual acted as both writer and verifier"
+CORTEX_ROOT="$TMP/none-$MODE" bash "$DESCSH" --report 2>/dev/null; assert_eq "[$MODE] report without a queue fails" "$?" "1"
+done
+
 echo ""; echo "describe-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

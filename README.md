@@ -141,7 +141,7 @@ The descriptions are not left to the agent's discretion. `cortex-describe.sh` ha
 a time with its real contents; a second agent verifies each description against the same contents, and
 the sync only finishes when `cortex-describe.sh --status` exits 0 — every folder verified, none changed
 since, none missing. Large projects are split across parallel subagents; an interrupted sync resumes.
-Use `cortex-describe.sh --init --all` to redo a map whose descriptions turned out generic.
+`cortex-describe.sh --report` shows who wrote and verified what, and warns when verification looks like a rubber stamp. Use `cortex-describe.sh --init --all` to redo a map whose descriptions turned out generic.
 
 Run it after installing, and after structural changes made outside a session — a `git pull` that
 reshapes the tree, folders created by hand, a branch switch.

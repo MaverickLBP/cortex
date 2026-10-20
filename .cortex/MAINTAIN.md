@@ -1,6 +1,6 @@
 # CORTEX — Maintaining the map
 
-> Version: 6.1.1
+> Version: 6.1.2
 > System file — do not modify manually. The installer overwrites it.
 
 The map is one short description per folder, stored in `.cortex/map/`. It answers "which folder do I
