@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.1] — 2026-10-20
+
+### Changed
+- `/cortex-sync` spells out that exit 3 from `--next` means "wait and ask again" for both roles, and
+  that `--verdict ok` is refused unless its evidence names a file or subfolder from the contents.
+- The map of this repository was rebuilt through the queue (`--init --all`) as a first end-to-end run.
+
 ## [6.1.0] — 2026-10-20
 
 ### Added
@@ -364,7 +371,8 @@ that is a decision rather than something the code shows.
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.0...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.1...HEAD
+[6.1.1]: https://github.com/MaverickLBP/cortex/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/MaverickLBP/cortex/compare/v6.0.1...v6.1.0
 [6.0.1]: https://github.com/MaverickLBP/cortex/compare/v6.0.0...v6.0.1
 [6.0.0]: https://github.com/MaverickLBP/cortex/compare/v5.0.3...v6.0.0

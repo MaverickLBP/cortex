@@ -69,10 +69,14 @@ Then work the queue with **writers** and **verifiers**. Each takes a unique `--w
   **role** in at most 120 characters, in English, naming no files:
   `bash .cortex/scripts/cortex-describe.sh --submit "<folder>" "<description>" --worker <id>`.
   Repeat. Exit code 3 means "nothing to take right now, try again shortly"; 4 means "nothing left for
-  you": stop. If you keep getting 3 (about 20 tries, a few seconds apart) and nothing is served, stop too.
+  you": stop. Exit 3 covers two situations you cannot tell apart: other workers are still busy, or the
+  work you need is not ready yet (for example a parent waiting for its subfolders to be verified). Wait a
+  few seconds and ask again; if you keep getting 3 (about 20 tries) and nothing is served, stop too.
 - Verifier loop: `--next --role verify --worker <id>` prints the folder, the description to check and the
   contents. Decide whether the description is true and specific for *this* content, then
-  `--verdict "<folder>" ok "<evidence: cite a file or folder name from the contents>" --worker <id>` or
+  `--verdict "<folder>" ok "<evidence>" --worker <id>`, where the evidence must contain the exact name of a
+  file or subfolder listed in the contents you were shown — the script checks this and refuses an `ok`
+  without it — or
   `--verdict "<folder>" reject "<what is wrong>" --worker <id>`. A rejected folder goes back to a writer
   with your reason; after 3 rejections it needs a human.
 
