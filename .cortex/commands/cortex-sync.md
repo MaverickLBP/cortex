@@ -27,8 +27,8 @@ wc -l < .cortex/.state/reconcile.txt
 
 The script does everything that needs no judgement: folders that were renamed or moved take their
 description (and their subfolders') with them, and folders that disappeared lose theirs. It writes
-what it moved and removed, and lists the new folders that still have no description. Those are your
-work for Step 2. If it exits non-zero, stop and report its error: nothing was changed.
+what it moved and removed, and lists the new folders that still have no description. Step 2 builds its
+work queue from them. If it exits non-zero, stop and report its error: nothing was changed.
 
 The output goes to a file because on a fresh, large repository it lists every folder — far more than
 a single command's output can show. Read it in chunks of 200 lines, never all at once and never
@@ -41,22 +41,55 @@ awk 'NR>=201 && NR<=400' .cortex/.state/reconcile.txt
 
 …and so on until you reach the line count printed above.
 
-### Step 2 — Describe every pending folder
+### Step 2 — Describe every folder, through the queue
 
-For each folder listed, look at what it holds and write one line about its **role**: what kind of
-thing lives there and why. At most 120 characters. Never name files, entry points or naming
-patterns — those belong in `PROJECT.md`.
+The work is driven by `cortex-describe.sh`, not by you. It hands out one folder at a time together with
+its real contents, never lets a description be verified by the worker that wrote it, and decides when the sync is
+finished. Do not write descriptions from path names, from the parent folder, or with scripts, templates
+or loops: the text must come from the contents the script shows you.
 
 ```bash
-bash .cortex/scripts/cortex-map.sh --set "rsrc/modules/billing" "Billing: invoice issuing, download and tax reports."
+bash .cortex/scripts/cortex-describe.sh --init          # folders with no description yet
+bash .cortex/scripts/cortex-describe.sh --init --all    # every folder
 ```
 
-A folder listing plus a glance at one or two representative files is normally enough. You do not need
-to read every file. Work in tree order (parents first) so related folders get consistent wording.
+Use `--all` whenever the existing descriptions did not come through this queue: the first sync after
+installing or upgrading, a map written by hand or by an older `/cortex-sync`, or any map that looks
+generic. Without it only folders that have no description at `--init` time are checked.
 
-On a large repository this step may be split across subagents. Folders are independent, so there is
-no ordering constraint between them, but **only the main agent writes the map**: subagents return
-their descriptions and the main agent runs `--set`.
+`--init` resumes a queue left half-done by an earlier run and picks up new or renamed folders; run it
+again only when no worker is alive, because it releases every unfinished claim. `--init --restart`
+discards the queue. After a sync has finished, the next `--init` starts a new queue.
+
+Then work the queue with **writers** and **verifiers**. Each takes a unique `--worker <id>`
+(letters, digits, `.`, `_`, `-`); a folder is never verified by the worker that wrote it.
+
+- Writer loop: `bash .cortex/scripts/cortex-describe.sh --next --role write --worker <id>` prints
+  `TASK write <folder>`, any earlier rejection reason, and the folder's contents. Describe the folder's
+  **role** in at most 120 characters, in English, naming no files:
+  `bash .cortex/scripts/cortex-describe.sh --submit "<folder>" "<description>" --worker <id>`.
+  Repeat. Exit code 3 means "nothing to take right now, try again shortly"; 4 means "nothing left for
+  you": stop. If you keep getting 3 (about 20 tries, a few seconds apart) and nothing is served, stop too.
+- Verifier loop: `--next --role verify --worker <id>` prints the folder, the description to check and the
+  contents. Decide whether the description is true and specific for *this* content, then
+  `--verdict "<folder>" ok "<evidence: cite a file or folder name from the contents>" --worker <id>` or
+  `--verdict "<folder>" reject "<what is wrong>" --worker <id>`. A rejected folder goes back to a writer
+  with your reason; after 3 rejections it needs a human.
+
+Verifiers get the same codes: 3 while writers may still hand them work, 4 when nothing is left to verify.
+Because a writer stops when no folder is waiting to be written, and a rejection or a parent waiting for
+its children can create new work afterwards, work in **rounds**: when all workers have stopped, run
+`--status`; if it is not 0, start another round of writers and verifiers. Stop only when `--status`
+is 0, or when a whole round makes no progress (report that, with the `BLOCKED` lines).
+
+Run writers and verifiers at the same time within a round. **With a subagent tool, use it**: launch several writer
+subagents and several verifier subagents in parallel, each with its own worker id and the loop above as
+its instructions. Parents are only served once their subfolders are verified, so near the root there may
+be waits. Without a subagent tool, run both loops yourself with different worker ids.
+
+If a subagent dies and leaves folders claimed, run `bash .cortex/scripts/cortex-describe.sh --requeue-claimed`
+once no worker is alive. A folder stuck as `needs-human` can be sent back with `--reset "<folder>"`
+after you have read the last rejection reason that `--status` prints next to it, and the folder itself.
 
 ### Step 3 — Refresh the Tech Stack
 
@@ -88,10 +121,14 @@ Notes is never edited here.
 ### Step 5 — Verify and report
 
 ```bash
-bash .cortex/scripts/cortex-map.sh --drift > .cortex/.state/drift.txt
-wc -l < .cortex/.state/drift.txt
+bash .cortex/scripts/cortex-describe.sh --status
 ```
 
-The count must be `0`. If it is not, read the file in chunks of 200 lines as in Step 1 (`awk 'NR>=1 &&
-NR<=200' .cortex/.state/drift.txt`, …), close the gaps, and run it again. Then report: folders described, moved and removed; Tech Stack changes; and,
-if you wrote them in Step 4, the deduced conventions, listed so the user can review them.
+The sync is finished only when this exits `0`: every folder in the queue is verified, none of the
+descriptions changed after verification, and no folder is missing from the queue. Otherwise it prints
+a counts line and one `BLOCKED` line per problem (at most 50): fix those (more writer or verifier
+rounds, `--init` to pick up new folders, `--reset` for `needs-human`) and run it again. If folders stay
+`needs-human`, report "done with exceptions" and list them; never report the sync as complete.
+
+Then report: folders described, moved and removed; Tech Stack changes; and, if you wrote them in Step 4,
+the deduced conventions, listed so the user can review them.

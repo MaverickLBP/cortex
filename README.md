@@ -32,7 +32,8 @@ project/
 │   │   └── cortex-sync.md       ← Template for the /cortex-sync command
 │   └── scripts/
 │       ├── cortex-scan.sh       ← Gitignore-aware folder enumeration
-│       └── cortex-map.sh        ← The only writer of the map (--set / --find / --reconcile / --drift / --check)
+│       ├── cortex-describe.sh   ← The work queue /cortex-sync uses to describe and verify every folder
+│       └── cortex-map.sh        ← The only writer of the map (--set / --find / --reconcile / --drift / --dirs / --check)
 │
 ├── .claude/                     ← Claude Code only
 │   ├── settings.json            ← Registers CORTEX hooks (commit this)
@@ -135,6 +136,12 @@ describes the new ones, and refreshes the Tech Stack table. The first time, when
 section of `PROJECT.md` is still the empty template (`_None yet._`), it also deduces the conventions
 from the code and lists them in its report for you to review. After that, Conventions and Notes are
 yours. It works identically on Claude Code and OpenCode.
+
+The descriptions are not left to the agent's discretion. `cortex-describe.sh` hands out one folder at
+a time with its real contents; a second agent verifies each description against the same contents, and
+the sync only finishes when `cortex-describe.sh --status` exits 0 — every folder verified, none changed
+since, none missing. Large projects are split across parallel subagents; an interrupted sync resumes.
+Use `cortex-describe.sh --init --all` to redo a map whose descriptions turned out generic.
 
 Run it after installing, and after structural changes made outside a session — a `git pull` that
 reshapes the tree, folders created by hand, a branch switch.

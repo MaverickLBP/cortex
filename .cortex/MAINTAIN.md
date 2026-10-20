@@ -1,6 +1,6 @@
 # CORTEX — Maintaining the map
 
-> Version: 6.0.1
+> Version: 6.1.0
 > System file — do not modify manually. The installer overwrites it.
 
 The map is one short description per folder, stored in `.cortex/map/`. It answers "which folder do I
@@ -28,6 +28,10 @@ To see what is undescribed or stale, ask for the drift:
 ```bash
 bash .cortex/scripts/cortex-map.sh --drift
 ```
+
+Many undescribed folders at once (first install, a big pull) are not for hand-written `--set`
+commands: `/cortex-sync` works them through `cortex-describe.sh`, one folder at a time, each one
+verified by a second agent.
 
 Under Claude Code the `Stop` hook enforces this at the end of every turn and lists the folders still
 missing a description. Under OpenCode there are no hooks, so this instruction is the whole mechanism:

@@ -248,7 +248,7 @@ install_knowledge() {
     info "PROJECT.md already exists — left untouched"
   fi
 
-  for s in cortex-scan.sh cortex-map.sh; do
+  for s in cortex-scan.sh cortex-map.sh cortex-describe.sh; do
     if copy_file "$src/.cortex/scripts/$s" "$target/.cortex/scripts/$s"; then
       chmod +x "$target/.cortex/scripts/$s"
       ok "Installed $s"

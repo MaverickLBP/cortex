@@ -39,6 +39,12 @@ done
 MAPSH="$PROJ/.cortex/scripts/cortex-map.sh"
 [ -f "$MAPSH" ] || exit 0
 
+# While a /cortex-sync queue is running (marker touched within the last 12 h) the
+# queue drives the work: suggesting --set commands here would invite the shortcut
+# the queue exists to prevent. A marker left by an abandoned sync expires.
+MARKER="$PROJ/.cortex/.state/describe/active"
+[ -n "$(find "$MARKER" -mmin -720 -print -quit 2>/dev/null || true)" ] && exit 0
+
 # A fresh install has no descriptions yet: /cortex-sync builds the map, not
 # this hook. Checked without a pipe (CTR-12620).
 ANY="$(find "$PROJ/.cortex/map" -name '*.cortex' -type f -print -quit 2>/dev/null || true)"

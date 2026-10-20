@@ -195,6 +195,19 @@ if [ "$MODE" = git ]; then
   assert_no "[git] drift ignores gitignored dir" "$d" "build-out"
 fi
 
+echo "== [$MODE] dirs: every representable scanned folder, described or not =="
+DR="$TMP/dirs-$MODE"; mk_project "$DR" "$MODE"
+mkdir -p "$DR/src/a" "$DR/src/b" "$DR/my dir/it's" "$DR/ignored-out"
+for d in src/a src/b "my dir/it's" ignored-out; do printf 'x\n' > "$DR/$d/f.js"; done
+[ "$MODE" = git ] && printf 'ignored-out/\n' > "$DR/.gitignore"
+CORTEX_ROOT="$DR" bash "$MAPSH" --set src/a "Alpha service."
+before="$(find "$DR/.cortex/map" -type f | sort | xargs cat | md5sum)"
+want="$(printf "my dir\nmy dir/it's\nsrc\nsrc/a\nsrc/b")"
+[ "$MODE" = plain ] && want="$(printf "ignored-out\nmy dir\nmy dir/it's\nsrc\nsrc/a\nsrc/b")"
+assert_eq "[$MODE] dirs lists described and undescribed folders" "$(CORTEX_ROOT="$DR" bash "$MAPSH" --dirs)" "$want"
+CORTEX_ROOT="$DR" bash "$MAPSH" --dirs extra 2>/dev/null; assert_eq "[$MODE] dirs rejects extra args" "$?" "2"
+assert_eq "[$MODE] dirs changes nothing" "$(find "$DR/.cortex/map" -type f | sort | xargs cat | md5sum)" "$before"
+
 echo "== [$MODE] [RF 3] project path containing a space =="
 S="$TMP/with space/$MODE"; mk_project "$S" "$MODE"; mkdir -p "$S/lib"; printf 'x\n' > "$S/lib/z.py"
 CORTEX_ROOT="$S" bash "$MAPSH" --set lib "Libraries."; assert_eq "[$MODE] set in spaced root" "$?" "0"

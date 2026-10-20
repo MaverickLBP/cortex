@@ -7,7 +7,7 @@
 #     .cortex/map/src.cortex        -> "Application source."
 #     .cortex/map/src/api.cortex    -> "HTTP handlers."
 # Nothing else may write these files.
-# Usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --reconcile | --find <term>...
+# Usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --dirs | --reconcile | --find <term>...
 # ──────────────────────────────────────────────────────
 set -uo pipefail
 
@@ -25,7 +25,7 @@ MAPDIR="$ROOT/.cortex/map"
 SCAN="$SCRIPT_DIR/cortex-scan.sh"
 
 usage() {
-  echo "usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --reconcile | --find <term>..." >&2
+  echo "usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --dirs | --reconcile | --find <term>..." >&2
   exit 2
 }
 
@@ -360,6 +360,15 @@ case "${1:-}" in
     drift_sets "$WORK/dirs" "$WORK/plus" "$WORK/minus"
     sed 's/^/+ /' "$WORK/plus"
     sed 's/^/- /' "$WORK/minus"
+    ;;
+  --dirs)
+    [ "$#" -eq 1 ] || usage
+    # Read-only: every scanned folder that can be stored as a map entry, described or not.
+    DIRS="$(bash "$SCAN" --dirs "$ROOT")" || exit 1
+    while IFS= read -r d; do
+      [ -n "$d" ] && validate_target "$d" 2>/dev/null && printf '%s\n' "$d"
+    done <<< "$DIRS" | sort
+    exit 0
     ;;
   --reconcile)
     [ "$#" -eq 1 ] || usage

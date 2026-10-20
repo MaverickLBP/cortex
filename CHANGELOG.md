@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] — 2026-10-20
+
+### Added
+- `cortex-describe.sh`: a work queue for `/cortex-sync`. It hands out one folder at a time with its
+  real contents (files, subfolders, a bounded excerpt), lets a worker describe it with `--submit`,
+  hands the description to a different worker to verify with `--verdict` (which must cite a file or
+  folder name from the contents), and sends rejections back, escalating to `needs-human` after 3.
+  Parents are written only after their subfolders are verified. `--status` exits 0 only when every
+  folder is verified, no description changed since, and no folder is missing from the queue.
+  Includes `--init [--all] [--restart]` (resumes by default), `--reset`, `--requeue-claimed`, `--show`.
+- `cortex-map.sh --dirs`: read-only list of every representable folder, described or not.
+
+### Changed
+- `/cortex-sync` drives the queue with parallel writer and verifier subagents (or one agent playing
+  both roles) and finishes only when `cortex-describe.sh --status` exits 0. Before, it finished at
+  `--drift` = 0, which a 994-folder migration reached with over half of the descriptions being filler.
+- The `Stop` hook stays silent while a queue is active (marker younger than 12 h), so it does not
+  offer `--set` shortcuts in the middle of a sync.
+
 ## [6.0.1] — 2026-10-19
 
 ### Fixed
@@ -345,7 +364,8 @@ that is a decision rather than something the code shows.
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.0.1...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.0...HEAD
+[6.1.0]: https://github.com/MaverickLBP/cortex/compare/v6.0.1...v6.1.0
 [6.0.1]: https://github.com/MaverickLBP/cortex/compare/v6.0.0...v6.0.1
 [6.0.0]: https://github.com/MaverickLBP/cortex/compare/v5.0.3...v6.0.0
 [5.0.3]: https://github.com/MaverickLBP/cortex/compare/v5.0.2...v5.0.3

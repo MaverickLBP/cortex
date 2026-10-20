@@ -96,6 +96,18 @@ for MODE in git plain; do
   o="$(printf '{"cwd":"%s/src/new"}' "$S" | bash "$STOP")"
   assert_contains "[$MODE] finds the project walking up from a subfolder" "$o" "--set 'src/new'"
 
+  # An active describe queue silences the hook (the queue, not --set suggestions, drives the sync).
+  age_file() { touch -d "$2 hours ago" "$1" 2>/dev/null || touch -t "$(date -v-"$2"H +%Y%m%d%H%M)" "$1"; }
+  MARK="$S/.cortex/.state/describe/active"; mkdir -p "$(dirname "$MARK")"; touch "$MARK"
+  assert_silent "[$MODE] active describe queue → silent despite a pending folder" "$(run_stop "$S")"
+  age_file "$MARK" 11
+  assert_silent "[$MODE] marker 11 h old → still silent" "$(run_stop "$S")"
+  age_file "$MARK" 13
+  assert_contains "[$MODE] marker 13 h old → hook is active again" "$(run_stop "$S")" '"decision":"block"'
+  touch "$MARK"; rm -f "$MARK"
+  assert_contains "[$MODE] marker removed (queue complete) → hook is active again" "$(run_stop "$S")" '"decision":"block"'
+  rm -rf "$S/.cortex/.state"
+
   # Rename and delete of described folders: reported, never blocking.
   R="$TMP/stop-mv-$MODE"; make_project "$R" "$MODE"
   mkdir -p "$R/keep" "$R/lib"; printf 'x\n' > "$R/keep/k.js"; printf 'x\n' > "$R/lib/a.js"; printf 'y\n' > "$R/lib/b.js"
