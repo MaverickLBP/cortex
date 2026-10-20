@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CORTEX — A dynamic knowledge layer for Claude Code and OpenCode. Persistent project knowledge via MAP.md. Zero dependencies.">
+  <meta name="description" content="CORTEX — A dynamic knowledge layer for Claude Code and OpenCode. Persistent project knowledge via a per-folder map. Zero dependencies.">
   <title>CORTEX — Knowledge Layer for AI Coding Agents</title>
 
   <!-- Materialize CSS -->
@@ -102,8 +102,8 @@
               <i class="material-icons feature-icon blue-text text-accent-2">map</i>
               <span class="card-title">Living Knowledge Map</span>
               <p>
-                Every folder documented with a one-line purpose of what it contains.
-                One map, always loaded in full — no partitioning by project size.
+                Every folder documented with a one-line purpose, one small file per folder.
+                Agents look folders up with <code>--find</code> instead of loading the whole map.
               </p>
             </div>
           </div>
@@ -114,7 +114,7 @@
               <i class="material-icons feature-icon green-text text-accent-2">autorenew</i>
               <span class="card-title">Auto-Maintained</span>
               <p>
-                The agent updates <code>MAP.md</code> silently as part of normal work.
+                Renames and deletions reconcile themselves; the agent only describes new folders.
                 No manual documentation upkeep required.
               </p>
             </div>
@@ -138,10 +138,9 @@
               <i class="material-icons feature-icon purple-text text-accent-2">extension</i>
               <span class="card-title">Native Enforcement</span>
               <p>
-                Deep integration with Claude Code (SessionStart, SubagentStart, PostToolUse
-                and Stop hooks) and OpenCode (<code>opencode.json</code> instructions).
-                Knowledge loads at every session start, and the Stop hook blocks once per
-                turn if the map needs reconciling.
+                Claude Code loads the knowledge through a rule file, hands subagents the lookup
+                instructions via a SubagentStart hook, and a Stop hook blocks once per turn
+                for new undescribed folders. OpenCode uses <code>opencode.json</code> instructions.
               </p>
             </div>
           </div>
@@ -184,8 +183,8 @@
             <div class="step-number green accent-2 white-text">2</div>
             <h5>Work</h5>
             <p class="grey-text text-darken-1">
-              Just start working. The agent consults <code>MAP.md</code> every session,
-              and reconciles it as folders are added, changed, or removed —
+              Just start working. The agent finds folders with <code>cortex-map.sh --find</code>,
+              and the map reconciles as folders are added, renamed, or removed —
               no separate initialization step.
             </p>
             <div class="code-block">
@@ -232,11 +231,11 @@
               <span class="command-badge blue white-text">sync</span>
               <span class="card-title">cortex-sync</span>
               <p>
-                Reconciles <code>MAP.md</code> and <code>PROJECT.md</code> with what is
+                Reconciles the folder map and <code>PROJECT.md</code> with what is
                 actually on disk. Idempotent: on a fresh project everything is missing,
                 so it generates the whole map; on a mature one it only closes the
-                gaps — adds folders that appeared, removes folders that are gone, and
-                refreshes the Tech Stack table. There is no separate initialization
+                gaps — describes folders that appeared, drops folders that are gone, refreshes the
+                Tech Stack table, and deduces Conventions the first time. There is no separate initialization
                 command.
               </p>
               <div class="divider"></div>
@@ -277,12 +276,12 @@
               <tr>
                 <td><strong>Claude Code</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td>SessionStart, SubagentStart, PostToolUse &amp; Stop hooks + slash command (<code>/cortex-sync</code>)</td>
+                <td>rule file, SubagentStart &amp; Stop hooks + slash command (<code>/cortex-sync</code>)</td>
               </tr>
               <tr>
                 <td><strong>OpenCode</strong></td>
                 <td><span class="new badge green" data-badge-caption="Full"></span></td>
-                <td><code>opencode.json</code> auto-loads knowledge at session start + slash command (<code>/cortex-sync</code>); no hooks, so map maintenance is followed by instruction alone</td>
+                <td><code>opencode.json</code> auto-loads the knowledge files at session start + slash command (<code>/cortex-sync</code>); no hooks, so map maintenance is followed by instruction alone</td>
               </tr>
             </tbody>
           </table>
@@ -329,16 +328,10 @@
         <div class="col s12 l6">
           <div class="card install-bottom-card hoverable">
             <div class="card-content">
-              <span class="card-title">Workspace Bridge</span>
-              <p>For VS Code multi-root workspaces (<code>.code-workspace</code>), create a <code>.cortex-workspace.json</code> marker that enables workspace mode in the hook:</p>
-              <div class="code-block">
-                <code>bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install-workspace-bridge.sh) --file workspace.code-workspace</code>
-              </div>
+              <span class="card-title">Upgrading from v5</span>
+              <p>The installer never removes v5 files; it warns about them. Cleanup is manual and documented step by step in the changelog.</p>
               <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
-                Or locally: <code>bash install-workspace-bridge.sh --file workspace.code-workspace</code>
-              </p>
-              <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
-                Run without arguments for interactive mode.
+                See <a href="https://github.com/MaverickLBP/cortex/blob/main/CHANGELOG.md">CHANGELOG.md</a> &rarr; &ldquo;Upgrading from v5&rdquo;.
               </p>
             </div>
           </div>
@@ -349,8 +342,8 @@
               <span class="card-title">After Installing</span>
               <p class="grey-text text-darken-1" style="font-size: 0.9rem; margin-bottom: 8px;">Works the same in Claude Code and OpenCode:</p>
               <ol class="browser-default" style="padding-left: 20px;">
-                <li>Start a new session with your agent — just work, there's no required first step</li>
-                <li>On Claude Code, the <code>Stop</code> hook prompts the agent to reconcile the map at the end of any turn that touched files</li>
+                <li>Start a new session with your agent</li>
+                <li>Run <code>/cortex-sync</code> once to generate the map; after that, on Claude Code the <code>Stop</code> hook asks the agent to describe any new folder at the end of a turn</li>
                 <li>Run <code>/cortex-sync</code> to reconcile the map after changes made outside a session — a <code>git pull</code>, folders created by hand, a branch switch</li>
               </ol>
             </div>

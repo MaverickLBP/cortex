@@ -11,33 +11,36 @@ mechanisms to guarantee the knowledge is loaded at every session start.
 
 ## How it works
 
-CORTEX keeps three files, all loaded into context at session start:
+CORTEX keeps four things in `.cortex/`:
 
-| File | What it holds | Who writes it |
+| What | Holds | Who writes it |
 |---|---|---|
-| `.cortex/SYSTEM.md` | Agent behaviour instructions | The installer. Never edit it. |
-| `.cortex/PROJECT.md` | Tech stack, conventions, notes | The agent (Tech Stack) and the user (Conventions, Notes) |
-| `.cortex/MAP.md` | A commented tree of every folder in the project, one line each | Only `cortex-map.sh` |
+| `.cortex/LOOKUP.md` | How to look things up with the map | The installer (overwrites it). Never edit it. |
+| `.cortex/MAINTAIN.md` | How to keep the map and `PROJECT.md` current | The installer (overwrites it). Never edit it. |
+| `.cortex/PROJECT.md` | Tech stack, conventions, notes | Tech Stack: the agent. Conventions: deduced once by `/cortex-sync`, then the user. Notes: the user. The installer never overwrites it. |
+| `.cortex/map/` | One short description per folder | Only `cortex-map.sh` |
 
 ```
 project/
 ├── .cortex/                     ← Agent-agnostic knowledge (always committed)
-│   ├── SYSTEM.md                ← Agent behaviour instructions (do not edit)
-│   ├── PROJECT.md                ← Tech stack + conventions + notes
-│   ├── MAP.md                   ← Folder-level knowledge map, written only by cortex-map.sh
+│   ├── LOOKUP.md                ← How to look things up (do not edit)
+│   ├── MAINTAIN.md              ← How to maintain the map (do not edit)
+│   ├── PROJECT.md               ← Tech stack + conventions + notes
+│   ├── map/                     ← One <folder>.cortex file per folder, written only by cortex-map.sh
+│   ├── .state/                  ← Local snapshot used to detect renames (gitignored)
 │   ├── commands/
 │   │   └── cortex-sync.md       ← Template for the /cortex-sync command
 │   └── scripts/
 │       ├── cortex-scan.sh       ← Gitignore-aware folder enumeration
-│       └── cortex-map.sh        ← The only writer of MAP.md (--set / --remove / --validate / --drift)
+│       └── cortex-map.sh        ← The only writer of the map (--set / --find / --reconcile / --drift / --check)
 │
 ├── .claude/                     ← Claude Code only
 │   ├── settings.json            ← Registers CORTEX hooks (commit this)
+│   ├── rules/
+│   │   └── cortex.md            ← Imports LOOKUP.md, MAINTAIN.md and PROJECT.md at session start
 │   ├── hooks/
-│   │   ├── cortex-session.sh       ← SessionStart: injects SYSTEM.md, PROJECT.md and MAP.md
-│   │   ├── cortex-subagent.sh      ← SubagentStart: gives subagents the same three files
-│   │   ├── cortex-file-change.sh   ← PostToolUse: mute collector, records what a turn touched
-│   │   └── cortex-stop.sh          ← Stop: the only decision point — blocks once per turn if the map needs work
+│   │   ├── cortex-subagent.sh      ← SubagentStart: gives every subagent LOOKUP.md
+│   │   └── cortex-stop.sh          ← Stop: reconciles the map; blocks once per turn for new undescribed folders
 │   └── commands/
 │       └── cortex-sync.md       ← Slash command for Claude Code
 │
@@ -45,30 +48,38 @@ project/
 │   └── commands/
 │       └── cortex-sync.md       ← Slash command for OpenCode
 │
-└── opencode.json                ← OpenCode only: auto-loads SYSTEM.md, PROJECT.md and MAP.md
+└── opencode.json                ← OpenCode only: auto-loads LOOKUP.md, MAINTAIN.md and PROJECT.md
 ```
 
-**MAP.md is folder-granular.** Every entry is a folder and a one-line description of what it
-contains — never a file name, entry point, or naming pattern (those belong in `PROJECT.md`).
-There is one map and one command — no partitioning by project size: `MAP.md` is always loaded
-in full, regardless of how large the project is.
+**The map is folder-granular and stored one file per folder.** Each folder has a
+`.cortex/map/<folder>.cortex` file holding a single line: what the folder is for, in at most 120
+characters. Descriptions state a role, never file names, entry points or naming patterns (those
+belong in `PROJECT.md`). Two branches only conflict if they change the description of the same
+folder, and a merge request shows the map change as a plain added file.
+
+**Agents query the map instead of loading it.** `cortex-map.sh --find <term>…` returns the folders
+whose path or description contains every term, most relevant first (at most 40 lines). Renamed,
+moved and deleted folders need no work from the agent: `cortex-map.sh --reconcile` moves or drops
+their descriptions on its own, using a local snapshot of the file list (`.cortex/.state/`, never
+committed). Only new folders need a description.
+
+It works the same with and without git. With git, `.gitignore` is respected; without it, common
+build and dependency folders are skipped.
 
 ### Enforcement mechanism
 
-- **Claude Code**: four hooks provide active enforcement, no passive CLAUDE.md needed.
-  - `cortex-session.sh` (`SessionStart`) injects `SYSTEM.md`, `PROJECT.md` and the full content
-    of `MAP.md` as `additionalContext` — the agent doesn't need to read the files separately.
-    Supports workspace mode (see below).
-  - `cortex-subagent.sh` (`SubagentStart`) gives subagents the same three files, since they
-    never receive `SessionStart` context on their own.
-  - `cortex-file-change.sh` (`PostToolUse`) is a mute collector: it records which paths a turn
-    touched and makes no decisions, emits no reminders, and never interrupts the agent.
-  - `cortex-stop.sh` (`Stop`) is the only decision point. It fires once per turn, reads the
-    touch record, and — if the map now needs work — blocks once so the agent reconciles it
-    before returning control. It is stateless: every turn is evaluated fresh, with no memory of
-    previously reported folders.
-- **OpenCode**: `opencode.json` → `instructions` auto-loads `.cortex/SYSTEM.md`,
-  `.cortex/PROJECT.md` and `.cortex/MAP.md` at every session start.
+- **Claude Code**
+  - `.claude/rules/cortex.md` imports `LOOKUP.md`, `MAINTAIN.md` and `PROJECT.md`, so the main agent
+    and general-purpose subagents have them at session start.
+  - `cortex-subagent.sh` (`SubagentStart`) gives every subagent `LOOKUP.md`, including Explore and
+    Plan, which do not receive the rule file.
+  - `cortex-stop.sh` (`Stop`) runs `--reconcile` at the end of every turn. It is stateless: if new
+    folders still lack a description it blocks once per turn and lists up to 20 of them, each with a
+    ready-to-copy `--set` command. If it only moved or removed descriptions, it just reports that.
+    It stays silent until the map has its first entry (run `/cortex-sync` after installing). Set
+    `CORTEX_STOP_HOOK=0` to disable it.
+- **OpenCode**: `opencode.json` → `instructions` auto-loads `.cortex/LOOKUP.md`,
+  `.cortex/MAINTAIN.md` and `.cortex/PROJECT.md` at every session start.
 
 **Claude Code and OpenCode do not offer the same guarantee.** Under Claude Code a `Stop` hook
 enforces map maintenance at the end of every turn. OpenCode has no hook mechanism, so there the
@@ -101,22 +112,16 @@ From a local copy (no download):
 bash install.sh --source /path/to/cortex --agent claude /path/to/project
 ```
 
-**After installing for Claude Code:** commit `.claude/settings.json` — it registers the hooks
-that enforce CORTEX at session start and at the end of every turn. Per-user overrides go in
+The installer creates `.cortex/PROJECT.md` from `templates/PROJECT.md` (empty sections, titled with
+your project's name) only if it does not exist yet, and adds `.cortex/.state/` to `.gitignore` when
+the project uses git.
+
+**After installing for Claude Code:** commit `.claude/settings.json` and `.claude/rules/cortex.md`
+— they register the hooks and load the knowledge. Per-user overrides go in
 `.claude/settings.local.json` (gitignored).
 
-**Upgrading from a pre-v5 install:** `install.sh` only ever adds the current file set — it never
-removes files or hook registrations left by an older version. If your project has any of
-`.cortex/scripts/cortex-areas.sh`, `.cortex/scripts/cortex-init.sh`,
-`.claude/hooks/cortex-map-load.sh`, or a `PreToolUse` entry in `.claude/settings.json`, delete the
-following by hand before re-running `install.sh`:
-
-- `.cortex/` (all of it — includes `MAP.md`, `PROJECT.md`, and `.cortex/maps/` if present)
-- `.claude/hooks/cortex-*.sh`
-- `.claude/commands/cortex-*.md` and `.opencode/commands/cortex-*.md`, if present
-- Any hook entry in `.claude/settings.json` whose `command` points at a `cortex-*.sh` script
-
-Then run `install.sh` again for a clean v5 install.
+**Upgrading from v5:** the installer never removes anything. It warns when it finds v5 leftovers
+and points at the manual cleanup steps in [CHANGELOG.md](./CHANGELOG.md) → "Upgrading from v5".
 
 ### 2. Build (and keep) the knowledge map
 
@@ -124,36 +129,20 @@ Then run `install.sh` again for a clean v5 install.
 /cortex-sync
 ```
 
-One command, idempotent. On a fresh project everything is missing, so it generates the whole
-map; on a mature one it only closes the gaps — adds folders that appeared, removes folders that
-are gone, and refreshes the Tech Stack table. There is no separate initialisation step, and it
-works identically on Claude Code and OpenCode.
+One command, idempotent. On a fresh project every folder lacks a description, so it generates the
+whole map; on a mature one it only closes the gaps — reconciles renamed and deleted folders,
+describes the new ones, and refreshes the Tech Stack table. The first time, when the Conventions
+section of `PROJECT.md` is still the empty template (`_None yet._`), it also deduces the conventions
+from the code and lists them in its report for you to review. After that, Conventions and Notes are
+yours. It works identically on Claude Code and OpenCode.
 
-Run it after structural changes made outside a session — a `git pull` that reshapes the tree,
-folders created by hand, a branch switch.
+Run it after installing, and after structural changes made outside a session — a `git pull` that
+reshapes the tree, folders created by hand, a branch switch.
 
-During normal work you generally don't need to run it yourself: on Claude Code, the `Stop` hook
-prompts the agent to reconcile the map at the end of any turn that touched files. On OpenCode,
-`SYSTEM.md` instructs the agent to do the same — but nothing enforces it, so it depends on the
-agent following the instruction.
-
-### 3. Workspace bridge (multi-project, Claude Code only)
-
-If you work with a VS Code multi-root workspace (`.code-workspace`), install the workspace bridge to enable workspace mode in the hook:
-
-```bash
-bash <(curl -sSL https://raw.githubusercontent.com/MaverickLBP/cortex/main/install-workspace-bridge.sh) --file workspace.code-workspace
-```
-
-Or from a local copy:
-
-```bash
-bash install-workspace-bridge.sh --file /path/to/workspace.code-workspace
-```
-
-This creates a `.cortex-workspace.json` marker at the workspace root. The `cortex-session.sh` hook in each project detects it and enters workspace mode — injecting a list of all CORTEX-enabled projects and ordering the agent to load the MAP.md of whichever project is being worked on.
-
-> **Note:** Workspace mode is activated by the hook in the primary cwd project. Open your session from a project that has CORTEX installed for Claude Code.
+During normal work you generally don't need to run it yourself: on Claude Code, the `Stop` hook asks
+the agent to describe any new folder at the end of the turn. On OpenCode, `MAINTAIN.md` instructs
+the agent to do the same — but nothing enforces it, so it depends on the agent following the
+instruction.
 
 ---
 
@@ -162,7 +151,6 @@ This creates a `.cortex-workspace.json` marker at the workspace root. The `corte
 | Resource | Description |
 |----------|-------------|
 | [`install.sh`](./install.sh) | Install CORTEX in a single project (agent selection) |
-| [`install-workspace-bridge.sh`](./install-workspace-bridge.sh) | Generate `.cortex-workspace.json` for multi-project workspaces (Claude Code) |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history following Keep a Changelog |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to report bugs, suggest features, and submit PRs |
 | [docs/](./docs/) | Web landing page (GitHub Pages) |
@@ -174,8 +162,8 @@ This creates a `.cortex-workspace.json` marker at the workspace root. The `corte
 
 | Agent | Enforcement | Commands |
 |---|---|---|
-| **Claude Code** | `SessionStart` and `SubagentStart` hooks inject SYSTEM.md, PROJECT.md and full MAP.md content; `PostToolUse` hook silently records touched paths; `Stop` hook blocks once per turn if the map needs reconciling | `/cortex-sync` |
-| **OpenCode** | `opencode.json` → `instructions` auto-loads SYSTEM.md, PROJECT.md and MAP.md; no hooks exist, so map maintenance is followed by instruction alone, with nothing enforcing it | `/cortex-sync` |
+| **Claude Code** | `.claude/rules/cortex.md` loads LOOKUP.md, MAINTAIN.md and PROJECT.md; `SubagentStart` hook gives every subagent LOOKUP.md; `Stop` hook reconciles the map and blocks once per turn for new undescribed folders | `/cortex-sync` |
+| **OpenCode** | `opencode.json` → `instructions` auto-loads LOOKUP.md, MAINTAIN.md and PROJECT.md; no hooks exist, so map maintenance is followed by instruction alone, with nothing enforcing it | `/cortex-sync` |
 
 ---
 

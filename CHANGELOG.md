@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] — 2026-10-19
+
+### Changed
+- The folder map is now one file per folder under `.cortex/map/` (`<folder>.cortex`, a single line of
+  at most 120 characters) instead of one `MAP.md`. Two branches only conflict when they change the
+  description of the same folder.
+- Agents query the map with `cortex-map.sh --find <term>…` (all terms must match, most relevant first,
+  at most 40 lines) instead of loading it whole.
+- `cortex-map.sh --reconcile` moves the descriptions of renamed or moved folders and drops those of
+  deleted ones by itself, using a local snapshot of the file list in `.cortex/.state/` (gitignored).
+  `--drift` and `--check` remain; `--set` now enforces the 120-character limit.
+- Knowledge files: `.cortex/LOOKUP.md` and `.cortex/MAINTAIN.md` replace `SYSTEM.md`. They are loaded
+  through `.claude/rules/cortex.md` (Claude Code) and `opencode.json` (OpenCode). `LOOKUP.md` is also
+  the marker the hooks and installer use to recognise a CORTEX project.
+- The `SubagentStart` hook injects only `LOOKUP.md`, so Explore and Plan subagents get the lookup
+  instructions. The `Stop` hook is stateless: it reconciles the map and blocks once per turn only for
+  new folders without a description (at most 20 listed, with ready-to-copy `--set` commands).
+- `.cortex/PROJECT.md` is created from `templates/PROJECT.md` (empty sections, project name as title)
+  and never overwritten. `/cortex-sync` deduces Conventions from the code the first time, while the
+  section is still `_None yet._`; after that Conventions and Notes belong to the user.
+- `/cortex-sync` is rewritten: reconcile, describe pending folders, refresh Tech Stack, deduce
+  Conventions (first run only), verify with `--drift`.
+- The installer adds `.cortex/.state/` to `.gitignore` when the project uses git, and warns (without
+  touching anything) when it finds v5 leftovers.
+
+### Removed
+- `SYSTEM.md` and `MAP.md`.
+- The `SessionStart` hook (`cortex-session.sh`) and the `PostToolUse` hook (`cortex-file-change.sh`),
+  plus the `.cortex/.touched/` record.
+- `cortex-map.sh --validate`, `--lookup`, `--remove` and `--move` (reconciliation covers them).
+- Workspace mode: `install-workspace-bridge.sh` and `.cortex-workspace.json`.
+
+### Breaking
+- v6 does not migrate a v5 install. Remove the v5 files by hand (below) and install v6. Open branches
+  that edited `MAP.md` will hit a modify/delete conflict once; resolve it by deleting `MAP.md`.
+
+### Upgrading from v5
+
+Everything from v5 is deleted, including `PROJECT.md`: v6 installs the template and `/cortex-sync`
+fills it in (Tech Stack detected, Conventions deduced from the code). Because `PROJECT.md` is in git,
+nothing is lost; review `git diff .cortex/PROJECT.md` afterwards and restore by hand any convention
+that is a decision rather than something the code shows.
+
+1. Delete the files:
+   ```bash
+   rm -rf .cortex .claude/hooks/cortex-*.sh .claude/commands/cortex-sync.md .opencode/commands/cortex-sync.md
+   ```
+2. In `.claude/settings.json`, remove only the hook entries whose `command` points at
+   `.claude/hooks/cortex-*`, keeping any hooks that are not CORTEX's:
+   ```bash
+   jq 'if .hooks then .hooks |= (map_values(map(.hooks |= map(select((.command // "") | test("\\.claude/hooks/cortex-") | not))) | map(select(.hooks | length > 0))) | with_entries(select(.value | length > 0))) | (if .hooks == {} then del(.hooks) else . end) else . end' .claude/settings.json > .claude/settings.json.tmp && mv .claude/settings.json.tmp .claude/settings.json
+   ```
+3. In `opencode.json` (if present), remove `.cortex/SYSTEM.md`, `.cortex/MAP.md` and
+   `.cortex/PROJECT.md` from `instructions`. v6 adds its own.
+4. In `.gitignore`, remove `.cortex/.touched/` and its comment.
+5. Workspace mode: delete `.cortex-workspace.json` if it exists in any parent directory.
+6. Run the v6 installer, then run `/cortex-sync` to generate the map and deduce Conventions.
+7. Commit the cleanup, the install and the generated map together.
+
 ## [5.0.3] — 2026-08-24
 
 ### Fixed

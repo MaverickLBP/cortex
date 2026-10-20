@@ -1,42 +1,5 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/cortex-session.sh",
-            "statusMessage": "Loading CORTEX knowledge..."
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/cortex-file-change.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/cortex-file-change.sh",
-            "if": "Bash(rm *)"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/cortex-file-change.sh",
-            "if": "Bash(mv *)"
-          }
-        ]
-      }
-    ],
     "SubagentStart": [
       {
         "hooks": [

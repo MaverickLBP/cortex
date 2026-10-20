@@ -1,377 +1,293 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────
-# CORTEX — cortex-map: sole owner of the MAP.md format.
-# MAP.md is an indented folder tree (two spaces per level), wrapped in a
-# fenced code block so the indentation survives Markdown rendering —
-# unfenced, consecutive indented lines collapse into one paragraph in every
-# Markdown renderer (GitHub, GitLab, ...), losing the tree structure:
-#     ```
-#     rsrc/  Application source.
-#       modules/  Business features, one folder per feature.
-#     ```
-# Indentation is STRUCTURE, not formatting: paths are
-# reconstructed from it. Nothing else may write this file.
-# Usage: cortex-map.sh --validate|--lookup <dir>|--set <dir> <desc>
-#                      |--remove <dir>|--drift [ROOT]|--check <dir>
+# CORTEX — cortex-map: sole owner of the folder map.
+# The map is a mirror tree under .cortex/map/: each described folder <dir>
+# has a one-line sibling file .cortex/map/<dir>.cortex holding its description
+# (the file sits NEXT TO the mirror directory of its children, not inside it):
+#     .cortex/map/src.cortex        -> "Application source."
+#     .cortex/map/src/api.cortex    -> "HTTP handlers."
+# Nothing else may write these files.
+# Usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --reconcile | --find <term>...
 # ──────────────────────────────────────────────────────
 set -uo pipefail
 
-# The fence marker, in ONE place. Held in a variable rather than typed
-# literally at each use site because three backticks inside double quotes
-# would otherwise be read as (invalid) command substitution syntax.
-FENCE='```'
-
-# Character classification below decides which names are representable, so it is
-# pinned to the C locale: in an 8-bit locale (ISO-8859-*) the bytes 0x80-0x9F
-# classify as control characters, and those bytes occur inside perfectly ordinary
-# UTF-8 sequences (the 0x82 in '€'). Without this an accented folder name would be
-# rejected or dropped depending on the ambient locale of whoever invoked us.
+# Character classification and the length count below must not depend on the
+# ambient locale (8-bit locales classify UTF-8 continuation bytes as control).
 export LC_ALL=C
 
-MODE=""
-case "${1:-}" in
-  --validate|--lookup|--set|--remove|--drift|--check) MODE="$1"; shift ;;
-  *) echo "usage: cortex-map.sh --validate|--lookup <dir>|--set <dir> <desc>|--remove <dir>|--drift [ROOT]|--check <dir>" >&2; exit 2 ;;
-esac
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+ROOT="${CORTEX_ROOT:-$SCRIPT_DIR/../..}"
+MAPDIR="$ROOT/.cortex/map"
+SCAN="$SCRIPT_DIR/cortex-scan.sh"
 
-# Positional args differ per mode; ROOT is resolved from the env or the
-# script location, never from a trailing argument that could be a description.
-ROOT="${CORTEX_ROOT:-$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)}"
-MAP="${CORTEX_MAP_FILE:-$ROOT/.cortex/MAP.md}"
-
-# ── Parser ────────────────────────────────────────────
-# The node-line predicate, in ONE place. Every part of this script that has to
-# tell a node line from a header or continuation line uses this exact string:
-# indentation, a name that starts with a non-space and holds no slash, then the
-# slash and the two spaces that open the description. Two copies of this rule
-# drifted apart once already (the header extractor in map_write silently ate
-# header lines the parser preserved), so there is only one copy now.
-NODE_RE='^ *[^ ][^/]*/  '
-
-# Emits "<path>\t<description>" per node line, in file order.
-# Exits 1 and prints a diagnostic on malformed indentation.
-# $1 = file to parse (defaults to $MAP) — map_write parses its own candidate
-# output through here before installing it.
-map_parse() {
-  local f="${1:-$MAP}"
-  [ -f "$f" ] || return 0
-  awk -v node_re="$NODE_RE" '
-    /^[[:space:]]*$/ { next }
-    /^#/             { next }
-    /^>/             { next }
-    /\t/ {
-      printf("cortex-map: tab indentation at line %d\n", NR) > "/dev/stderr"
-      bad = 1; exit 1
-    }
-    # Not a node line (see NODE_RE): ignored here, and NOT preserved — map_write
-    # regenerates everything after the header, so only header lines survive a write.
-    $0 !~ node_re { next }
-    {
-      n = match($0, /[^ ]/)
-      indent = n - 1
-      if (indent % 2 != 0) {
-        printf("cortex-map: odd indentation (%d spaces) at line %d\n", indent, NR) > "/dev/stderr"
-        bad = 1; exit 1
-      }
-      level = indent / 2
-      if (!seen && level != 0) {
-        printf("cortex-map: the first node must start at the root (0 indentation) at line %d\n", NR) > "/dev/stderr"
-        bad = 1; exit 1
-      }
-      if (seen && level > prev_level + 1) {
-        printf("cortex-map: level skip (%d -> %d) at line %d\n", prev_level, level, NR) > "/dev/stderr"
-        bad = 1; exit 1
-      }
-      rest  = substr($0, n)
-      slash = index(rest, "/")
-      name  = substr(rest, 1, slash - 1)
-      desc  = substr(rest, slash + 1)
-      sub(/^ +/, "", desc)
-      stack[level] = name
-      path = stack[0]
-      for (i = 1; i <= level; i++) path = path "/" stack[i]
-      printf("%s\t%s\n", path, desc)
-      prev_level = level; seen = 1
-    }
-    END { if (bad) exit 1 }
-  ' "$f"
+usage() {
+  echo "usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --reconcile | --find <term>..." >&2
+  exit 2
 }
 
-# Sort "path\tdesc" records in tree order. `/` is replaced by a literal
-# 0x01 byte (which sorts below every printable character) so that a parent
-# always precedes its children AND siblings like "a-b" never land between
-# "a" and "a/b". Built with `tr` on a printf-constructed separator rather
-# than sed's `\x01` escape: GNU sed interprets `\x01` as the byte 0x01, but
-# BSD/macOS sed treats it as the literal three characters `x01` — which
-# reintroduces the exact hyphen-vs-slash corruption this function exists to
-# prevent. `tr` translates single characters identically on every platform.
-map_sort() {
-  local sep
-  sep="$(printf '\001')"
-  tr '/' "$sep" | LC_ALL=C sort -t"$(printf '\t')" -k1,1 | tr "$sep" '/'
-}
-
-# Regenerate the whole file from a sorted "path\tdesc" stream on stdin,
-# preserving the original header (everything before the first node line).
-#
-# The candidate file is parsed back before it is installed, and the mv only
-# happens if it yields exactly the records it was built from. This is the net
-# under every representability rule: any name or description shape that the
-# format cannot carry turns into a clean non-zero exit with the existing map
-# untouched, instead of a corrupted MAP.md that no sanctioned command can
-# repair (hand-editing is forbidden — SYSTEM.md §2.1).
-map_write() {
-  local tmp header records parsed
-  records="$(grep -v '^$' || true)"
-  tmp="$(mktemp "$(dirname "$MAP")/.MAP.md.XXXXXX")" || return 1
-  header=""
-  if [ -f "$MAP" ]; then
-    # Mirror map_parse's skip rules: header lines are recognised BEFORE the node
-    # test, exactly as the parser does it, so a '#' or '>' line that happens to
-    # look like a node ("> See docs/  for details.") is preserved rather than
-    # mistaken for the end of the header and silently dropped.
-    header="$(awk -v node_re="$NODE_RE" '
-      /^#/ { print; next }
-      /^>/ { print; next }
-      $0 ~ node_re { exit }
-      { print }' "$MAP")"
-  fi
-  if [ -z "$header" ]; then
-    header="$(printf '# Knowledge Map\n\n> Folder-level map. Every folder containing tracked files appears here.\n> Generated and maintained by cortex-map.sh. Do not edit by hand.\n\n%s' "$FENCE")"
-  fi
-  # A map written before the fence existed has it missing from its preserved
-  # header (the header capture above stops at the first node line, so a
-  # legacy header ends in the '>' blurb, not a fence). Inject the opening
-  # fence so every write — not just fresh ones — self-heals into the fenced
-  # form. A header that already ends in the fence (the normal case on every
-  # write after the first) is left alone.
-  case "$header" in
-    *"$FENCE") : ;;
-    *) header="${header}"$'\n'"$FENCE" ;;
-  esac
-  printf '%s\n' "$header" > "$tmp"
-  if [ -n "$records" ]; then
-    printf '%s\n' "$records" | awk -F'\t' '{
-      n = split($1, parts, "/")
-      indent = ""
-      for (i = 1; i < n; i++) indent = indent "  "
-      printf("%s%s/  %s\n", indent, parts[n], $2)
-    }' >> "$tmp"
-  fi
-  printf '%s\n' "$FENCE" >> "$tmp"
-  parsed="$(map_parse "$tmp" 2>/dev/null)"
-  if [ "$parsed" != "$records" ]; then
-    echo "cortex-map: refusing to write a MAP.md that does not read back as written; the map is unchanged" >&2
-    rm -f "$tmp"
-    return 1
-  fi
-  mv "$tmp" "$MAP"
-}
-
-# Reject a target path that the map's own writer/parser cannot round-trip
-# safely. THE single definition of "representable" — --set, --remove, --drift
-# and --check all go through it, so what drift proposes is exactly what set
-# accepts. Prints a diagnostic and returns 2.
-#
-# A node line carries TWO positional channels:
-#
-#     <indent><name>/  <description>
-#
-# The name ends at its slash, so interior and trailing spaces round-trip fine.
-# The depth is the leading indentation, two spaces per level — which is why a
-# name may not START with a space in any segment: that space is read back as
-# indentation and corrupts the whole file, not just its own node.
-#
-# The rest: an absolute path would render a malformed empty root component via
-# the ancestor-expansion awk; a `.` or `..` segment is redundant or escapes the
-# tree; an empty segment renders a nameless node; a control character cannot be
-# carried at all (the format is line-oriented and the hooks' touch record is
-# tab-delimited); and a top-level name opening with `#` or `>` renders a line
-# the parser skips as a header comment, so the node would vanish on write and
-# every later --set would append another duplicate.
+# validate_target <dir>: exit 0 if <dir> can be stored as a map entry, else 2.
 validate_target() {
-  local t="$1"
+  local t="${1%/}" seg rest
+  if [ -z "$t" ]; then
+    echo "cortex-map: empty folder path" >&2; return 2
+  fi
   case "$t" in
-    /*)
-      echo "cortex-map: absolute paths are not allowed: $t" >&2
-      return 2
-      ;;
+    /*) echo "cortex-map: absolute paths are not allowed: $t" >&2; return 2 ;;
+    *[[:cntrl:]]*) echo "cortex-map: folder names may not contain tabs, newlines or other control characters: $t" >&2; return 2 ;;
+    *//*) echo "cortex-map: empty path segments are not allowed: $t" >&2; return 2 ;;
   esac
-  case "/$t" in
-    */\ *)
-      echo "cortex-map: folder names may not start with a space — a leading space is read back as MAP.md indentation: $t" >&2
-      return 2
-      ;;
-  esac
-  case "$t" in
-    *//*)
-      echo "cortex-map: empty path segments are not allowed: $t" >&2
-      return 2
-      ;;
-  esac
-  case "$t" in
-    '#'*|'>'*)
-      echo "cortex-map: a top-level folder name may not start with '#' or '>' — MAP.md reads such a line as a header comment: $t" >&2
-      return 2
-      ;;
-  esac
-  case "/$t/" in
-    */../*)
-      echo "cortex-map: '..' path segments are not allowed: $t" >&2
-      return 2
-      ;;
-  esac
-  case "/$t/" in
-    */./*)
-      echo "cortex-map: '.' path segments are not allowed: $t" >&2
-      return 2
-      ;;
-  esac
-  case "$t" in
-    *[[:cntrl:]]*)
-      echo "cortex-map: folder names may not contain tabs, newlines or other control characters: $t" >&2
-      return 2
-      ;;
+  rest="$t/"
+  while [ -n "$rest" ]; do
+    seg="${rest%%/*}"; rest="${rest#*/}"
+    case "$seg" in
+      .) echo "cortex-map: '.' path segments are not allowed: $t" >&2; return 2 ;;
+      ..) echo "cortex-map: '..' path segments are not allowed: $t" >&2; return 2 ;;
+      *.cortex) echo "cortex-map: a folder name may not end in .cortex — it would collide with a map file: $t" >&2; return 2 ;;
+    esac
+  done
+  case "${t%%/*}" in
+    .git|.cortex|.claude|.opencode)
+      echo "cortex-map: ${t%%/*} is excluded from the map: $t" >&2; return 2 ;;
   esac
   return 0
 }
 
-case "$MODE" in
-  --validate)
-    map_parse >/dev/null || exit 1
-    exit 0
-    ;;
-  --lookup)
-    TARGET="${1:-}"
-    [ -n "$TARGET" ] || { echo "cortex-map: --lookup needs a directory" >&2; exit 2; }
-    TARGET="${TARGET%/}"
-    # No early `exit` in the match action, deliberately (CTR-12620): exiting
-    # before EOF closes the pipe under map_parse, which dies with SIGPIPE, and
-    # `pipefail` then makes this whole pipeline 141 — so the && below never
-    # runs and a folder that IS mapped is reported MISSING. `--set` keeps
-    # paths unique, but nothing enforces that on a hand-edited map, so the
-    # print is guarded to the first match while still draining to EOF.
-    FOUND="$(map_parse | CX_T="$TARGET" awk -F'\t' '$1 == ENVIRON["CX_T"] && !found { print $2; found=1 } END { exit !found }')" \
-      && { printf '%s\n' "$FOUND"; exit 0; }
-    echo "MISSING"
-    exit 1
+# validate_desc <desc>: exit 0 if usable as a one-line description, else 2.
+validate_desc() {
+  local d="$1" n
+  case "$d" in
+    *[[:cntrl:]]*) echo "cortex-map: a description may not contain newlines or control characters" >&2; return 2 ;;
+    *[![:space:]]*) ;;
+    *) echo "cortex-map: a description may not be empty" >&2; return 2 ;;
+  esac
+  # Count characters, not bytes: UTF-8 continuation bytes (0x80-0xBF) are skipped.
+  n="$(printf '%s' "$d" | awk '{ n=0; for (i=1;i<=length($0);i++) { c=substr($0,i,1); if (c < "\200" || c > "\277") n++ } print n }')"
+  if [ "$n" -gt 120 ]; then
+    echo "cortex-map: description is $n characters (max 120) — describe the folder's role, not its contents" >&2
+    return 2
+  fi
+  return 0
+}
+
+# desc_file <dir>: path of the description file for <dir>.
+desc_file() { printf '%s\n' "$MAPDIR/${1%/}.cortex"; }
+
+# described_dirs: every described folder, one per line, sorted.
+described_dirs() {
+  local f rel
+  [ -d "$MAPDIR" ] || return 0
+  while IFS= read -r f; do
+    rel="${f#"$MAPDIR"/}"
+    printf '%s\n' "${rel%.cortex}"
+  done < <(find "$MAPDIR" -type f -name '*.cortex' 2>/dev/null) | sort
+}
+
+# drift_sets <dirs> <plus> <minus>: from a sorted list of scanned folders, write
+# the sorted "+" set (scanned, representable, not described) and the sorted "-"
+# set (described, no longer a directory on disk). Set work is done with comm on
+# sorted files so cost stays linear in the size of the tree.
+drift_sets() {
+  local dirs="$1" plus="$2" minus="$3" d
+  described_dirs > "$plus.described"
+  : > "$plus"; : > "$minus"
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    validate_target "$d" 2>/dev/null && printf '%s\n' "$d"
+  done < <(comm -23 "$dirs" "$plus.described") > "$plus"
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    [ -d "$ROOT/$d" ] || printf '%s\n' "$d"
+  done < "$plus.described" > "$minus"
+  rm -f "$plus.described"
+}
+
+# by_depth: sort folder paths by depth, then bytewise (LC_ALL=C).
+by_depth() {
+  awk -F/ '{ print NF "\t" $0 }' | sort -t "$(printf '\t')" -k1,1n -k2 | cut -f2-
+}
+
+# reconcile: the mechanical half of keeping the map current (spec §6.1).
+# Renamed folders keep their descriptions (detected against the snapshot of the
+# previous run's file list), vanished folders lose theirs, and what is left is
+# printed as pending. The scan is the source of truth for everything, so a
+# missing or failing scan aborts before anything is touched: an empty listing
+# would otherwise read as "every folder was deleted".
+reconcile() {
+  # W is global on purpose: the EXIT trap runs after this function returns.
+  local state="$ROOT/.cortex/.state" src dst d tab
+  tab="$(printf '\t')"
+  if [ ! -f "$SCAN" ]; then
+    echo "cortex-map: scanner not found: $SCAN" >&2; return 1
+  fi
+  W="$(mktemp -d)" || return 1
+  trap 'rm -rf "${W:-}"' EXIT
+  bash "$SCAN" --files "$ROOT" > "$W/files" || { echo "cortex-map: scan failed; nothing changed" >&2; return 1; }
+  bash "$SCAN" --dirs "$ROOT" > "$W/dirs" || { echo "cortex-map: scan failed; nothing changed" >&2; return 1; }
+  drift_sets "$W/dirs" "$W/plus" "$W/minus"
+  : > "$W/moves"
+
+  if [ -f "$state/tree" ] && [ -s "$W/minus" ] && [ -s "$W/plus" ]; then
+    by_depth < "$W/minus" > "$W/R"
+    # One pass over the snapshot and one over the current listing score every
+    # (gone, new) pair by shared relative paths; the greedy choice then runs in
+    # depth order. Output: "<old>\t<new>" per detected rename.
+    awk -F'\t' '
+      FILENAME == ARGV[1] { r[++nr] = $0; isR[$0] = 1; next }
+      FILENAME == ARGV[2] { isA[$0] = 1; next }
+      FILENAME == ARGV[3] {
+        p = $0; d = p
+        while ((i = match(d, /\/[^\/]*$/)) > 0) {
+          d = substr(d, 1, i - 1)
+          if (d in isR) { rel = substr(p, length(d) + 2); fr[d]++; owners[rel] = owners[rel] "\001" d }
+        }
+        next
+      }
+      {
+        p = $0; d = p
+        while ((i = match(d, /\/[^\/]*$/)) > 0) {
+          d = substr(d, 1, i - 1)
+          if (!(d in isA)) continue
+          rel = substr(p, length(d) + 2)
+          if (!(rel in owners)) continue
+          n = split(substr(owners[rel], 2), os, "\001")
+          for (k = 1; k <= n; k++) {
+            key = os[k] SUBSEP d
+            if (!(key in score)) cands[os[k]] = cands[os[k]] "\001" d
+            score[key]++
+          }
+        }
+      }
+      END {
+        nm = 0; nc = 0
+        for (i = 1; i <= nr; i++) {
+          x = r[i]
+          if (!(x in fr)) continue
+          skip = 0
+          for (m = 1; m <= nm; m++) if (index(x "/", moved[m] "/") == 1) { skip = 1; break }
+          if (skip) continue
+          best = ""; bs = 0
+          n = split(substr(cands[x], 2), cs, "\001")
+          for (k = 1; k <= n; k++) {
+            a = cs[k]; taken = 0
+            for (c = 1; c <= nc; c++) if (index(a "/", claimed[c] "/") == 1) { taken = 1; break }
+            if (taken) continue
+            s = score[x SUBSEP a]
+            if (s > 0 && 2 * s >= fr[x] && (s > bs || (s == bs && (a "") < (best "")))) { best = a; bs = s }
+          }
+          if (best != "") { moved[++nm] = x; claimed[++nc] = best; print x "\t" best }
+        }
+      }' "$W/R" "$W/plus" "$state/tree" "$W/files" > "$W/moves"
+
+    # Every description at or under each moved folder, mapped to its new home.
+    described_dirs > "$W/described"
+    awk -F'\t' '
+      FILENAME == ARGV[1] { from[++n] = $1; to[n] = $2; next }
+      { for (i = 1; i <= n; i++) {
+          if ($0 == from[i]) { print $0 "\t" to[i]; break }
+          if (index($0, from[i] "/") == 1) { print $0 "\t" to[i] substr($0, length(from[i]) + 1); break }
+      } }' "$W/moves" "$W/described" | by_depth_pairs > "$W/pairs"
+    while IFS="$tab" read -r src dst; do
+      if [ -e "$(desc_file "$dst")" ]; then
+        rm -f "$(desc_file "$src")" || return 1
+      else
+        mkdir -p "$(dirname "$(desc_file "$dst")")" && mv "$(desc_file "$src")" "$(desc_file "$dst")" || return 1
+      fi
+    done < "$W/pairs"
+    drift_sets "$W/dirs" "$W/plus" "$W/minus"
+  fi
+
+  # Whatever is still "-" is gone for good: drop it (its subtree is gone too, so
+  # every described descendant is in the set as well).
+  while IFS= read -r d; do
+    rm -f "$(desc_file "$d")" || return 1
+  done < "$W/minus"
+
+  awk '{ print "moved\t" $0 }' "$W/moves"
+  awk '{ set[$0] = 1; l[++n] = $0 }
+       END { for (i = 1; i <= n; i++) { d = l[i]; top = 1
+               while ((j = match(d, /\/[^\/]*$/)) > 0) { d = substr(d, 1, j - 1); if (d in set) { top = 0; break } }
+               if (top) print "removed\t" l[i] } }' "$W/minus"
+  by_depth < "$W/plus" | awk '{ print "pending\t" $0 }'
+
+  [ -d "$MAPDIR" ] && find "$MAPDIR" -mindepth 1 -depth -type d -empty -delete 2>/dev/null
+  mkdir -p "$state" && cp "$W/files" "$state/tree.tmp" && mv "$state/tree.tmp" "$state/tree" || {
+    echo "cortex-map: could not write the snapshot $state/tree" >&2; return 1; }
+  return 0
+}
+
+# by_depth_pairs: sort "<src>\t<dst>" lines by the depth of <src>, so a parent
+# is moved before its children.
+by_depth_pairs() {
+  awk -F'\t' '{ n = split($1, x, "/"); print n "\t" $0 }' | sort -t "$(printf '\t')" -k1,1n -k2 | cut -f2-
+}
+
+case "${1:-}" in
+  --check)
+    [ "$#" -eq 2 ] || usage
+    validate_target "$2"; exit $?
     ;;
   --set)
-    TARGET="${1:-}"; shift || true
-    DESC="${*:-}"
-    [ -n "$TARGET" ] || { echo "cortex-map: --set needs a directory" >&2; exit 2; }
-    # A description opens after the two spaces that follow the name, and the
-    # parser strips them, so leading spaces here are not part of the value.
-    # Drop them BEFORE the emptiness test, or an all-spaces description passes
-    # it and writes a node with no description at all.
-    while [ "${DESC# }" != "$DESC" ]; do DESC="${DESC# }"; done
-    [ -n "$DESC" ]   || { echo "cortex-map: --set needs a description" >&2; exit 2; }
-    # The description shares the node line with the name, so it is bound by the
-    # same line-oriented limits. map_write's round-trip guard would catch a tab
-    # or newline, but only as an opaque "does not read back" refusal — and a
-    # lone carriage return survives the round-trip while still writing a control
-    # byte into the map. Reject them here, where the diagnostic can say why.
-    case "$DESC" in
-      *[[:cntrl:]]*)
-        echo "cortex-map: a description may not contain control characters" >&2
-        exit 2
-        ;;
-    esac
-    TARGET="${TARGET%/}"
+    [ "$#" -eq 3 ] || usage
+    TARGET="${2%/}"
     validate_target "$TARGET" || exit 2
-    map_parse >/dev/null || exit 1
-
-    RECORDS="$(map_parse)"
-    # Every ancestor of TARGET must exist; add placeholders for any that don't.
-    ANCESTORS="$(printf '%s\n' "$TARGET" | awk -F/ '{ p=""; for (i=1; i<NF; i++) { p = (i==1 ? $1 : p "/" $i); print p } }')"
-    while IFS= read -r anc; do
-      [ -n "$anc" ] || continue
-      printf '%s\n' "$RECORDS" | CX_A="$anc" awk -F'\t' '$1 == ENVIRON["CX_A"] { found=1 } END { exit !found }' \
-        || RECORDS="$(printf '%s\n%s\t(undescribed)' "$RECORDS" "$anc")"
-    done <<< "$ANCESTORS"
-
-    # Upsert TARGET.
-    RECORDS="$(printf '%s\n' "$RECORDS" | CX_T="$TARGET" awk -F'\t' '$1 != ENVIRON["CX_T"]')"
-    RECORDS="$(printf '%s\n%s\t%s' "$RECORDS" "$TARGET" "$DESC")"
-
-    printf '%s\n' "$RECORDS" | map_sort | map_write || exit 1
-    exit 0
-    ;;
-  --remove)
-    TARGET="${1:-}"
-    [ -n "$TARGET" ] || { echo "cortex-map: --remove needs a directory" >&2; exit 2; }
-    TARGET="${TARGET%/}"
-    validate_target "$TARGET" || exit 2
-    map_parse >/dev/null || exit 1
-
-    # Drop the target and everything beneath it.
-    RECORDS="$(map_parse | CX_T="$TARGET" awk -F'\t' '$1 != ENVIRON["CX_T"] && index($1, ENVIRON["CX_T"] "/") != 1')"
-
-    # Prune ancestors that are now childless AND were only placeholders.
-    CHANGED=1
-    while [ "$CHANGED" -eq 1 ]; do
-      CHANGED=0
-      PRUNE="$(printf '%s\n' "$RECORDS" | awk -F'\t' '
-        $2 == "(undescribed)" { cand[$1] = 1 }
-        { all[NR] = $1 }
-        END {
-          for (c in cand) {
-            has_child = 0
-            for (i in all) if (index(all[i], c "/") == 1) { has_child = 1; break }
-            if (!has_child) print c
-          }
-        }')"
-      if [ -n "$PRUNE" ]; then
-        while IFS= read -r p; do
-          [ -n "$p" ] || continue
-          RECORDS="$(printf '%s\n' "$RECORDS" | CX_T="$p" awk -F'\t' '$1 != ENVIRON["CX_T"]')"
-          CHANGED=1
-        done <<< "$PRUNE"
-      fi
-    done
-
-    # `|| exit 1` as in --set: this script is the sole writer of MAP.md, so a
-    # write it could not perform must never be reported to the caller as done.
-    printf '%s\n' "$RECORDS" | grep -v '^$' | map_sort | map_write || exit 1
-    exit 0
-    ;;
-  --check)
-    # Read-only: ask whether a name is representable, without touching the map.
-    # This is the seam that keeps other components — the Stop hook above all —
-    # from re-deriving the rule by hand. Diagnostics go to stderr; the answer is
-    # the exit status.
-    TARGET="${1:-}"
-    [ -n "$TARGET" ] || { echo "cortex-map: --check needs a directory" >&2; exit 2; }
-    validate_target "${TARGET%/}" || exit 2
-    exit 0
+    validate_desc "$3" || exit 2
+    if [ ! -d "$ROOT/$TARGET" ]; then
+      echo "cortex-map: not a directory under the project root: $TARGET" >&2; exit 2
+    fi
+    f="$(desc_file "$TARGET")"
+    mkdir -p "$(dirname "$f")" || exit 1
+    printf '%s\n' "$3" > "$f" || exit 1
     ;;
   --drift)
-    [ -n "${1:-}" ] && ROOT="$1"
-    MAP="${CORTEX_MAP_FILE:-$ROOT/.cortex/MAP.md}"
-    SCAN="$ROOT/.cortex/scripts/cortex-scan.sh"
-    [ -f "$SCAN" ] || SCAN="$(dirname "$0")/cortex-scan.sh"
-    map_parse >/dev/null || exit 1
-
-    # Drop what validate_target would refuse, by ASKING validate_target rather
-    # than re-deriving its rule here. Every folder drift proposes is then one
-    # --set can actually apply, which is what lets /cortex-sync reach its "both
-    # must be silent" end state. A second approximation of the rule is exactly
-    # how the leading-space shape stayed proposed-but-unappliable once already.
-    ON_DISK="$(bash "$SCAN" --dirs "$ROOT" | grep -v '^$' | while IFS= read -r d; do
-      validate_target "$d" 2>/dev/null && printf '%s\n' "$d"
-    done | LC_ALL=C sort -u)"
-    IN_MAP="$(map_parse | cut -f1 | grep -v '^$' | LC_ALL=C sort -u)"
-
-    # `printf '%s\n' "$VAR"` still emits one blank line when VAR is empty, and
-    # the greps above ran inside the command substitution so they cannot remove
-    # it. comm would then report that blank line as a difference and it would
-    # render as a marker with no folder name — which is the fresh-install case
-    # (empty map, folders on disk) and its mirror. Filter where it is introduced.
-    nonblank() { printf '%s\n' "$1" | grep -v '^$'; }
-
-    LC_ALL=C comm -23 <(nonblank "$ON_DISK") <(nonblank "$IN_MAP") | sed 's/^/+ /'
-    LC_ALL=C comm -13 <(nonblank "$ON_DISK") <(nonblank "$IN_MAP") | sed 's/^/- /'
+    [ "$#" -eq 1 ] || usage
+    WORK="$(mktemp -d)" || exit 1
+    trap 'rm -rf "${WORK:-}"' EXIT
+    bash "$SCAN" --dirs "$ROOT" > "$WORK/dirs" || exit 1
+    drift_sets "$WORK/dirs" "$WORK/plus" "$WORK/minus"
+    sed 's/^/+ /' "$WORK/plus"
+    sed 's/^/- /' "$WORK/minus"
+    ;;
+  --reconcile)
+    [ "$#" -eq 1 ] || usage
+    reconcile; exit $?
+    ;;
+  --find)
+    shift
+    [ "$#" -ge 1 ] || usage
+    # Terms are lowercased and joined with \001; matching is literal (index(), never ~).
+    TERMS=""
+    # A blank term is a substring of everything: it would turn the query into
+    # "list the whole map", so it is a usage error, not a match-all.
+    for t in "$@"; do
+      case "$t" in *[![:space:]]*) ;; *) usage ;; esac
+      TERMS="$TERMS$(printf '%s' "$t" | tr 'A-Z' 'a-z')"$'\001'
+    done
+    QUERY="$*"
+    [ -d "$MAPDIR" ] || { echo "No folder matches: $QUERY"; exit 0; }
+    find "$MAPDIR" -type f -name '*.cortex' -exec awk 'FNR==1{print FILENAME "\t" $0}' {} + 2>/dev/null |
+    CORTEX_FIND_TERMS="$TERMS" CORTEX_FIND_MAPDIR="$MAPDIR/" awk -F'\t' '
+      BEGIN { n = split(ENVIRON["CORTEX_FIND_TERMS"], T, "\001"); n--; pre = length(ENVIRON["CORTEX_FIND_MAPDIR"]) }
+      {
+        dir = substr($1, pre + 1); sub(/\.cortex$/, "", dir)
+        desc = $2
+        hay = tolower(dir " " desc); low = tolower(dir)
+        last = low; sub(/.*\//, "", last)
+        ok = 1; g1 = 0; g2 = 0
+        for (i = 1; i <= n; i++) {
+          if (index(hay, T[i]) == 0) { ok = 0; break }
+          if (index(last, T[i]) > 0) g1 = 1
+          else if (index(low, T[i]) > 0) g2 = 1
+        }
+        if (ok) print (g1 ? 1 : (g2 ? 2 : 3)) "\t" dir "\t" desc
+      }' |
+    sort -t "$(printf '\t')" -k1,1n -k2,2 |
+    CORTEX_FIND_QUERY="$QUERY" awk -F'\t' '
+      { c++; if (c <= 40) print $2 "/  " $3 }
+      END {
+        if (c == 0) print "No folder matches: " ENVIRON["CORTEX_FIND_QUERY"]
+        else if (c > 40) print "… " (c - 40) " more — add another term to narrow"
+      }'
     exit 0
     ;;
+  *) usage ;;
 esac
-exit 2

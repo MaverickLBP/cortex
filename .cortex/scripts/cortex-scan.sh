@@ -52,11 +52,26 @@ list_files_raw() {
 # drops it along with tabs and the rest. Emitting lines is safe precisely
 # because by this point no path contains a control character. Octal escapes in
 # `tr` (not \0 / \n shorthands) — BSD and GNU tr agree on those.
-list_files() {
-  list_files_raw \
-    | tr '\n' '\001' | tr '\000' '\n' \
+to_lines() {
+  tr '\n' '\001' | tr '\000' '\n' \
     | LC_ALL=C grep -v '[[:cntrl:]]' \
     | sed 's|^\./||'
+}
+
+# The index outlives the disk: after a plain `rm -rf`/`mv` of committed files
+# (nothing staged yet) `ls-files --cached` still lists every old path, which
+# would read as a folder that exists and needs a description. `ls-files
+# --deleted` names exactly those entries, through the same NUL-safe pipeline so
+# both lists spell a path identically; they are subtracted here, so the scan
+# reports what is on disk in both branches. awk keys on ARGV[1], not NR==FNR,
+# so an empty deleted list cannot swallow the real one.
+list_files() {
+  if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    list_files_raw | to_lines | awk 'FILENAME == ARGV[1] { gone[$0] = 1; next } !($0 in gone)' \
+      <(git -C "$ROOT" ls-files -z --deleted 2>/dev/null | to_lines) -
+  else
+    list_files_raw | to_lines
+  fi
 }
 
 if [ "$MODE" = "--files" ]; then

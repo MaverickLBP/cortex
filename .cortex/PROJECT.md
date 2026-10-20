@@ -4,9 +4,10 @@
 
 | Technology | Version | Purpose | Source |
 |------------|---------|---------|--------|
-| Bash | 4+ | Scanner, map writer, hooks, installers | extension histogram |
+| Bash | 3.2+ | Scanner, map writer, hooks, installers | extension histogram |
 | Markdown | N/A | Knowledge files and command definitions | extension histogram |
 | jq | any | JSON handling in hooks and installer | required by hooks |
+| HTML/CSS/JS | N/A | Static project website in `docs/` | extension histogram |
 
 _CORTEX has no runtime dependencies: it is a knowledge layer built from Markdown files and bash scripts._
 
@@ -19,7 +20,7 @@ _CORTEX has no runtime dependencies: it is a knowledge layer built from Markdown
 - Hooks go in `.claude/hooks/`, one file per hook event, and must exit 0 on every error path.
 - Test harnesses go in `tests/`, are plain bash, and require no Claude session to run.
 - Design specs go in `docs/superpowers/specs/`, implementation plans in `docs/superpowers/plans/` (both gitignored, local-only).
-- `.cortex/MAP.md` is a folder-level map, written only by `.cortex/scripts/cortex-map.sh` (`--set`/`--remove`/`--drift`/`--validate`). Never hand-edit it — its indentation is structural, not cosmetic.
+- The folder map lives in `.cortex/map/`, one `<folder>.cortex` file per folder, written only by `.cortex/scripts/cortex-map.sh` (`--set`/`--find`/`--reconcile`/`--drift`). Never hand-edit it.
 
 ## Notes
 

@@ -59,10 +59,18 @@ prompt() { echo -e -n "  ${CYAN}?${NC} $1 "; }
 
 # ── Helpers ────────────────────────────────────────────
 
+# Absolute, symlink-resolved path of a file (POSIX; no readlink -f / realpath).
+abs_path() { echo "$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")"; }
+
+# Copy a file; a no-op when source and destination are the same file
+# (self-install: the source repo is also the target).
 copy_file() {
   local src="$1" dst="$2"
-  [ -f "$src" ] && cp "$src" "$dst" && return 0
-  return 1
+  [ -f "$src" ] || return 1
+  if [ -f "$dst" ] && [ "$(abs_path "$src")" = "$(abs_path "$dst")" ]; then
+    return 0
+  fi
+  cp "$src" "$dst"
 }
 
 # Idempotent jq merge: add key=value to a JSON object file.
@@ -93,43 +101,104 @@ json_array_add() {
     "$file" > "$tmp" && mv "$tmp" "$file"
 }
 
+# Idempotent: add a hook command to settings.json under an event.
+# Existing (foreign) hooks are preserved.
+settings_add_hook() {
+  local file="$1" event="$2" cmd="$3" tmp
+  tmp="$(mktemp)"
+  jq --arg ev "$event" --arg cmd "$cmd" '
+    .hooks[$ev] //= [] |
+    if ([.hooks[$ev][] | (.hooks // [])[] | select(.command == $cmd)] | length) > 0
+    then .
+    else .hooks[$ev] += [{"hooks":[{"type":"command","command":$cmd}]}]
+    end
+  ' "$file" > "$tmp" && mv "$tmp" "$file"
+}
+
+# Remove exact-match lines from a file (portable replacement for sed -i).
+gitignore_drop_line() {
+  local file="$1" line="$2" tmp
+  tmp="$(mktemp)"
+  grep -vxF -- "$line" "$file" > "$tmp" || true
+  cat "$tmp" > "$file"
+  rm -f "$tmp"
+}
+
+# ── v5 leftovers ───────────────────────────────────────
+
+# Report (never modify) files and settings entries left by CORTEX v5.
+warn_v5_leftovers() {
+  local target="$1" found=() f
+  for f in .cortex/SYSTEM.md .cortex/MAP.md \
+           .claude/hooks/cortex-session.sh .claude/hooks/cortex-file-change.sh; do
+    [ -e "$target/$f" ] && found+=("$f")
+  done
+  local settings="$target/.claude/settings.json"
+  if [ -f "$settings" ] && command -v jq >/dev/null 2>&1; then
+    if [ "$(jq '[.. | objects | .command? // empty | strings
+                 | select(test("cortex-session\\.sh|cortex-file-change\\.sh"))] | length' \
+            "$settings" 2>/dev/null || echo 0)" != "0" ]; then
+      found+=(".claude/settings.json (hook entries for cortex-session.sh / cortex-file-change.sh)")
+    fi
+  fi
+  local oc="$target/opencode.json"
+  if [ -f "$oc" ] && command -v jq >/dev/null 2>&1; then
+    if [ "$(jq '[(.instructions? // []) | if type == "array" then .[] else empty end | strings
+                 | select(test("(^|/)\\.cortex/(SYSTEM|MAP)\\.md$"))] | length' \
+            "$oc" 2>/dev/null || echo 0)" != "0" ]; then
+      found+=("opencode.json (instructions entries for .cortex/SYSTEM.md / .cortex/MAP.md)")
+    fi
+  fi
+  if [ -f "$target/.gitignore" ] && grep -qE '^/?\.cortex/\.touched/?[[:space:]]*$' "$target/.gitignore" 2>/dev/null; then
+    found+=(".gitignore (entry for .cortex/.touched/)")
+  fi
+  if [ "${#found[@]}" -gt 0 ]; then
+    echo ""
+    warn "CORTEX v5 leftovers found (not modified):"
+    for f in "${found[@]}"; do
+      echo "      - $f"
+    done
+    warn "See CHANGELOG 6.0.0 → \"Upgrading from v5\""
+  fi
+}
+
 # ── Install .cortex/ knowledge ─────────────────────────
 
 install_knowledge() {
   local target="$1" src="$2"
 
-  mkdir -p "$target/.cortex/scripts"
+  mkdir -p "$target/.cortex/scripts" "$target/.cortex/map"
   ok "Created .cortex/"
 
-  copy_file "$src/.cortex/SYSTEM.md" "$target/.cortex/SYSTEM.md" && \
-    ok "Installed SYSTEM.md" || warn "SYSTEM.md not found in source"
+  for f in LOOKUP.md MAINTAIN.md; do
+    copy_file "$src/.cortex/$f" "$target/.cortex/$f" && \
+      ok "Installed $f" || warn "$f not found in source"
+  done
 
-  # MAP.md is never copied from the source repo: the source's own MAP.md
-  # describes the source project's folders (e.g. CORTEX's own dogfooded
-  # tree), and that header/body would become permanently baked into every
-  # installed project — map_write preserves "everything before the first
-  # node line" as the header forever, with no sanctioned way to change it
-  # (hand-editing MAP.md is forbidden by design). Instead, write a fresh
-  # header-only map with no folder nodes, using the target's own directory
-  # name, in the same header format cortex-map.sh's map_write falls back to.
-  local map_file="$target/.cortex/MAP.md"
-  if [ ! -f "$map_file" ]; then
-    local project_name
-    project_name="$(basename "$target")"
-    cat > "$map_file" << EOM
-# Knowledge Map — ${project_name}
-
-> Folder-level map. Every folder containing tracked files appears here.
-> Generated and maintained by cortex-map.sh. Do not edit by hand.
-EOM
-    ok "Created MAP.md (header only — run /cortex-sync to populate it)"
-  else
-    warn "MAP.md exists — preserved (not overwritten)"
-  fi
-
+  # PROJECT.md comes from the template, never from the source's own
+  # .cortex/PROJECT.md (that one describes the source project).
   if [ ! -f "$target/.cortex/PROJECT.md" ]; then
-    copy_file "$src/.cortex/PROJECT.md" "$target/.cortex/PROJECT.md" && \
-      ok "Installed PROJECT.md template" || warn "PROJECT.md not found in source"
+    local project_name tmpl tmp pre post
+    project_name="$(basename "$target")"
+    tmpl="$src/templates/PROJECT.md"
+    if [ -f "$tmpl" ]; then
+      tmp="$(mktemp)"
+      while IFS= read -r line || [ -n "$line" ]; do
+        # Literal split (no pattern replacement): portable across bash
+        # versions/BASH_COMPAT and keeps '&' in the name literal.
+        case "$line" in
+          *'{{PROJECT_NAME}}'*)
+            pre=${line%%'{{PROJECT_NAME}}'*}
+            post=${line#*'{{PROJECT_NAME}}'}
+            printf '%s\n' "$pre$project_name$post" ;;
+          *) printf '%s\n' "$line" ;;
+        esac
+      done < "$tmpl" > "$tmp"
+      mv "$tmp" "$target/.cortex/PROJECT.md"
+      ok "Installed PROJECT.md from template"
+    else
+      warn "templates/PROJECT.md not found in source"
+    fi
   else
     info "PROJECT.md already exists — left untouched"
   fi
@@ -142,6 +211,16 @@ EOM
       warn "$s not found in source"
     fi
   done
+
+  # With git, the tree snapshot is local state: keep it out of commits.
+  if git -C "$target" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local gitignore="$target/.gitignore"
+    [ -f "$gitignore" ] || touch "$gitignore"
+    if ! grep -qxF '.cortex/.state/' "$gitignore" 2>/dev/null; then
+      printf '\n# CORTEX local tree snapshot\n.cortex/.state/\n' >> "$gitignore"
+      ok "Added .cortex/.state/ to .gitignore"
+    fi
+  fi
 }
 
 # ── Install for Claude Code ────────────────────────────
@@ -149,10 +228,9 @@ EOM
 install_claude() {
   local target="$1" src="$2"
 
-  mkdir -p "$target/.claude/hooks" "$target/.claude/commands"
+  mkdir -p "$target/.claude/hooks" "$target/.claude/commands" "$target/.claude/rules"
 
-  # Hooks (session + active-enforcement)
-  for hook in cortex-session.sh cortex-file-change.sh cortex-subagent.sh cortex-stop.sh; do
+  for hook in cortex-subagent.sh cortex-stop.sh; do
     if copy_file "$src/.claude/hooks/$hook" "$target/.claude/hooks/$hook"; then
       chmod +x "$target/.claude/hooks/$hook"
       ok "Installed $hook hook"
@@ -161,84 +239,16 @@ install_claude() {
     fi
   done
 
-  # settings.json — merge hook (idempotent)
+  copy_file "$src/.claude/rules/cortex.md" "$target/.claude/rules/cortex.md" && \
+    ok "Installed rule cortex.md" || warn "rules/cortex.md not found in source"
+
+  # settings.json — merge only SubagentStart and Stop (idempotent)
   local settings="$target/.claude/settings.json"
-  local hook_cmd="bash .claude/hooks/cortex-session.sh"
-  local hook_entry
-  hook_entry='{"type":"command","command":"bash .claude/hooks/cortex-session.sh","statusMessage":"Loading CORTEX knowledge..."}'
-
   if command -v jq >/dev/null 2>&1; then
-    if [ ! -f "$settings" ]; then
-      echo '{}' > "$settings"
-    fi
-    # Add hook only if not already present
-    local tmp
-    tmp="$(mktemp)"
-    jq --argjson entry "$hook_entry" '
-      .hooks.SessionStart //= [] |
-      if (.hooks.SessionStart // [] |
-          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-session.sh")) |
-          length) > 0
-      then .
-      else
-        .hooks.SessionStart += [{"hooks": [$entry]}]
-      end
-    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
-    ok "Merged SessionStart hook into .claude/settings.json"
-
-    # PostToolUse — file-change reminders (idempotent)
-    tmp="$(mktemp)"
-    jq '
-      .hooks.PostToolUse //= [] |
-      if (.hooks.PostToolUse // [] |
-          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-file-change.sh")) |
-          length) > 0
-      then .
-      else
-        .hooks.PostToolUse += [
-          {"matcher":"Write","hooks":[
-            {"type":"command","command":"bash .claude/hooks/cortex-file-change.sh"}
-          ]},
-          {"matcher":"Bash","hooks":[
-            {"type":"command","command":"bash .claude/hooks/cortex-file-change.sh","if":"Bash(rm *)"},
-            {"type":"command","command":"bash .claude/hooks/cortex-file-change.sh","if":"Bash(mv *)"}
-          ]}
-        ]
-      end
-    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
-    ok "Merged PostToolUse hooks into .claude/settings.json"
-
-    # SubagentStart — CORTEX note for subagents (idempotent)
-    tmp="$(mktemp)"
-    jq '
-      .hooks.SubagentStart //= [] |
-      if (.hooks.SubagentStart // [] |
-          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-subagent.sh")) |
-          length) > 0
-      then .
-      else
-        .hooks.SubagentStart += [{"hooks":[
-          {"type":"command","command":"bash .claude/hooks/cortex-subagent.sh"}
-        ]}]
-      end
-    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
-    ok "Merged SubagentStart hook into .claude/settings.json"
-
-    # Stop — consolidate the knowledge map once per turn (idempotent)
-    tmp="$(mktemp)"
-    jq '
-      .hooks.Stop //= [] |
-      if (.hooks.Stop // [] |
-          map(.hooks // [] | .[] | select(.command == "bash .claude/hooks/cortex-stop.sh")) |
-          length) > 0
-      then .
-      else
-        .hooks.Stop += [{"hooks":[
-          {"type":"command","command":"bash .claude/hooks/cortex-stop.sh"}
-        ]}]
-      end
-    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
-    ok "Merged Stop hook into .claude/settings.json"
+    [ -f "$settings" ] || echo '{}' > "$settings"
+    settings_add_hook "$settings" SubagentStart "bash .claude/hooks/cortex-subagent.sh"
+    settings_add_hook "$settings" Stop "bash .claude/hooks/cortex-stop.sh"
+    ok "Merged SubagentStart and Stop hooks into .claude/settings.json"
   else
     warn "jq not found — skipping settings.json merge (install jq and re-run)"
   fi
@@ -259,23 +269,14 @@ install_claude() {
     ok "Created .gitignore"
   fi
   # Remove old blanket ignore of .claude/settings.json if present
-  if grep -q "^\.claude/settings\.json$" "$gitignore" 2>/dev/null; then
-    sed -i '/^\.claude\/settings\.json$/d' "$gitignore"
+  if grep -qxF ".claude/settings.json" "$gitignore" 2>/dev/null; then
+    gitignore_drop_line "$gitignore" ".claude/settings.json"
     warn "Removed .claude/settings.json from .gitignore (it should now be committed)"
   fi
   if ! grep -q "\.claude/settings\.local\.json" "$gitignore" 2>/dev/null; then
     echo ".claude/settings.local.json" >> "$gitignore"
     ok "Added .claude/settings.local.json to .gitignore"
   fi
-  # Older installs ignored the flat '.cortex/.touched-*' glob; records now live
-  # under '.cortex/.touched/' instead, so migrate the stale line forward.
-  if grep -qxF '.cortex/.touched-*' "$gitignore" 2>/dev/null; then
-    sed -i '/^\.cortex\/\.touched-\*$/d' "$gitignore"
-  fi
-  grep -qF '.cortex/.touched/' "$gitignore" 2>/dev/null || {
-    printf '\n# CORTEX session touch records (ephemeral)\n.cortex/.touched/\n' >> "$gitignore"
-    ok "Added .cortex/.touched/ to .gitignore"
-  }
 }
 
 # ── Install for OpenCode ───────────────────────────────
@@ -288,9 +289,9 @@ install_opencode() {
   # opencode.json — merge instructions (idempotent)
   local oc_json="$target/opencode.json"
   if command -v jq >/dev/null 2>&1; then
-    json_array_add "$oc_json" "instructions" ".cortex/SYSTEM.md"
+    json_array_add "$oc_json" "instructions" ".cortex/LOOKUP.md"
+    json_array_add "$oc_json" "instructions" ".cortex/MAINTAIN.md"
     json_array_add "$oc_json" "instructions" ".cortex/PROJECT.md"
-    json_array_add "$oc_json" "instructions" ".cortex/MAP.md"
     ok "Merged CORTEX instructions into opencode.json"
   else
     warn "jq not found — skipping opencode.json merge (install jq and re-run)"
@@ -323,6 +324,8 @@ install_cortex() {
     err "Directory not found: '$target'"
     exit 1
   }
+
+  warn_v5_leftovers "$target"
 
   # Knowledge (always)
   install_knowledge "$target" "$src"
@@ -429,5 +432,5 @@ echo "  ────────────────────────
 echo -e "  ${GREEN}✔ CORTEX installed in${NC} $TARGET"
 echo ""
 echo "  Next steps:"
-echo "    1. Run  /cortex-sync  to generate or refresh the knowledge map"
-echo "    2. Commit .cortex/ and .claude/settings.json (if Claude Code)"
+echo "    1. Run /cortex-sync to generate the folder map."
+echo "    2. Commit .cortex/ and .claude/ (if Claude Code)"

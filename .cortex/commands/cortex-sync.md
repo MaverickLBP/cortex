@@ -4,72 +4,63 @@ description: Reconcile the knowledge map with the filesystem. Works on a fresh p
 
 # cortex-sync — Reconcile the knowledge map
 
-Brings `.cortex/MAP.md` and `.cortex/PROJECT.md` in line with what is actually on disk.
+Brings the folder map in `.cortex/map/` and `.cortex/PROJECT.md` in line with what is actually on
+disk.
 
-**Idempotent.** On a fresh project every folder is missing, so this generates the whole map; on a
-mature one it only closes the gaps. There is no separate initialisation command.
+**Idempotent.** On a fresh project every folder is missing a description, so this generates the whole
+map; on a mature one it only closes the gaps. There is no separate initialisation command.
 
 Run it after structural changes made outside an agent session — a `git pull` that reshapes the
-tree, folders created by hand, a branch switch — or on a fresh install.
+tree, folders created by hand, a branch switch — or right after installing.
 
 ---
 
 ## Procedure
 
-### Step 1 — Validate the existing map
+### Step 1 — Reconcile
 
 ```bash
-bash .cortex/scripts/cortex-map.sh --validate
+mkdir -p .cortex/.state
+bash .cortex/scripts/cortex-map.sh --reconcile > .cortex/.state/reconcile.txt
+wc -l < .cortex/.state/reconcile.txt
 ```
 
-If this fails, it prints the offending line number. `MAP.md` was hand-edited and its indentation is
-broken. **Stop and fix that line first** — every step below would otherwise operate on
-mis-reconstructed paths.
+The script does everything that needs no judgement: folders that were renamed or moved take their
+description (and their subfolders') with them, and folders that disappeared lose theirs. It writes
+what it moved and removed, and lists the new folders that still have no description. Those are your
+work for Step 2. If it exits non-zero, stop and report its error: nothing was changed.
 
-### Step 2 — Compute the drift
+The output goes to a file because on a fresh, large repository it lists every folder — far more than
+a single command's output can show. Read it in chunks of 200 lines, never all at once and never
+through a `| head` pipeline:
 
 ```bash
-bash .cortex/scripts/cortex-map.sh --drift
+awk 'NR>=1 && NR<=200' .cortex/.state/reconcile.txt
+awk 'NR>=201 && NR<=400' .cortex/.state/reconcile.txt
 ```
 
-Output is one line per difference:
+…and so on until you reach the line count printed above.
 
-```
-+ rsrc/modules/billing      folder on disk, absent from the map
-- public/assets/legacy      folder in the map, absent from disk
-```
+### Step 2 — Describe every pending folder
 
-No output means the map is in sync — skip to Step 5.
-
-### Step 3 — Add every `+` folder
-
-For each one, look at what it holds and write a one-line description of **what the folder
-contains**. Never name files, entry points or naming patterns (see SYSTEM.md §2.2) — those belong
-in `PROJECT.md`.
+For each folder listed, look at what it holds and write one line about its **role**: what kind of
+thing lives there and why. At most 120 characters. Never name files, entry points or naming
+patterns — those belong in `PROJECT.md`.
 
 ```bash
 bash .cortex/scripts/cortex-map.sh --set "rsrc/modules/billing" "Billing: invoice issuing, download and tax reports."
 ```
 
-A folder listing plus a glance at one or two representative files is normally enough. You do not
-need to read every file.
+A folder listing plus a glance at one or two representative files is normally enough. You do not need
+to read every file. Work in tree order (parents first) so related folders get consistent wording.
 
-If there are many, work through them in tree order so related folders get consistent wording. On a
-large repository this step may be dispatched to subagents — folders are independent, so there is no
-ordering constraint between them — but **only the main agent writes the map**: subagents report
+On a large repository this step may be split across subagents. Folders are independent, so there is
+no ordering constraint between them, but **only the main agent writes the map**: subagents return
 their descriptions and the main agent runs `--set`.
 
-### Step 4 — Remove every `-` folder
+### Step 3 — Refresh the Tech Stack
 
-```bash
-bash .cortex/scripts/cortex-map.sh --remove "public/assets/legacy"
-```
-
-Ancestors left childless are pruned automatically when they were only placeholders.
-
-### Step 5 — Refresh the Tech Stack
-
-Re-run the detection cascade and update the table in `PROJECT.md`:
+Re-run the detection cascade and update the Tech Stack table in `.cortex/PROJECT.md`:
 
 1. Parse known manifests (`package.json`, `pom.xml`, `Cargo.toml`, `pyproject.toml`, `go.mod`,
    `composer.json`, `Gemfile`, `pubspec.yaml`) for name, key dependencies and versions.
@@ -82,16 +73,25 @@ Re-run the detection cascade and update the table in `PROJECT.md`:
 
 Unknown version → `latest` or `N/A`. Missing detection is never an error.
 
-### Step 6 — Conventions and Notes: ask, do not edit
+### Step 4 — Conventions
 
-If the new folders suggest a convention that `PROJECT.md` does not record, **say so and wait**. Do
-not edit the Conventions or Notes sections on your own — they are the user's.
+Read the body of the Conventions section in `.cortex/PROJECT.md`.
 
-### Step 7 — Verify and report
+- If it is exactly `_None yet._` (or empty), this is the first run: deduce the project's conventions
+  from the code (layout, naming, test and build tooling, recurring patterns), write them as a bullet
+  list, and keep them to what the code actually shows. Do not invent decisions.
+- Otherwise, do not touch it. Conventions belong to the user from then on. If the new folders suggest
+  one that is not recorded, say so and wait.
+
+Notes is never edited here.
+
+### Step 5 — Verify and report
 
 ```bash
-bash .cortex/scripts/cortex-map.sh --validate && bash .cortex/scripts/cortex-map.sh --drift
+bash .cortex/scripts/cortex-map.sh --drift > .cortex/.state/drift.txt
+wc -l < .cortex/.state/drift.txt
 ```
 
-Both must be silent. Then report: folders added, folders removed, tech stack changes, and any
-convention you are suggesting.
+The count must be `0`. If it is not, read the file in chunks of 200 lines as in Step 1 (`awk 'NR>=1 &&
+NR<=200' .cortex/.state/drift.txt`, …), close the gaps, and run it again. Then report: folders described, moved and removed; Tech Stack changes; and,
+if you wrote them in Step 4, the deduced conventions, listed so the user can review them.

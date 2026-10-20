@@ -29,9 +29,9 @@ Thank you for your interest in contributing. CORTEX is designed to be lightweigh
    ```
 3. Make your changes. Follow the existing style and conventions.
 4. Test your changes:
-   - Run `bash -n install.sh install-workspace-bridge.sh` to validate bash syntax.
+   - Run the three harnesses: `bash tests/map-test.sh`, `bash tests/hooks-test.sh` and `bash tests/install-test.sh`. They are plain bash and need no agent session.
+   - Run `bash -n install.sh` to validate bash syntax.
    - Test the installer: `bash install.sh --source /path/to/cortex --agent claude /tmp/test-project`
-   - Test the workspace bridge: `bash install-workspace-bridge.sh --file /path/to/workspace.code-workspace`
    - Verify commands are copied to `.claude/commands/` and/or `.opencode/commands/` per agent.
 5. Commit with a conventional commit message:
    ```
@@ -62,12 +62,8 @@ bash install.sh --source /path/to/cortex --agent opencode /tmp/test-project-oc
 ls -la /tmp/test-project-oc/.opencode/commands/
 jq . /tmp/test-project-oc/opencode.json
 
-# Test the workspace bridge (requires a .code-workspace file)
-bash install-workspace-bridge.sh --file /path/to/project.code-workspace
-cat /path/to/.cortex-workspace.json
-
-# Test the hook directly
-echo '{"cwd":"/tmp/test-project"}' | bash /tmp/test-project/.claude/hooks/cortex-session.sh | jq .
+# Test a hook directly
+echo '{"cwd":"/tmp/test-project"}' | bash /tmp/test-project/.claude/hooks/cortex-subagent.sh | jq .
 ```
 
 ### Adding a new command
@@ -76,15 +72,15 @@ echo '{"cwd":"/tmp/test-project"}' | bash /tmp/test-project/.claude/hooks/cortex
 2. Add the copy block to `install.sh` for **both agent dirs**:
    - `.claude/commands/<command-name>.md` (Claude Code)
    - `.opencode/commands/<command-name>.md` (OpenCode)
-3. Document the command in `SYSTEM.md` if it changes agent behaviour.
+3. Document the command in `.cortex/MAINTAIN.md` or `.cortex/LOOKUP.md` if it changes agent behaviour.
 4. Update `CHANGELOG.md` under `[Unreleased]`.
 
-### Updating MAP.md format
+### Updating the map format
 
-If you change the MAP.md template or structure:
+If you change how the map is stored (`.cortex/map/`) or the `cortex-map.sh` interface:
 
-1. Update `cortex-map.sh` and `cortex-sync.md` to reflect the new format.
-2. Bump the version in `SYSTEM.md`.
+1. Update `cortex-map.sh`, `cortex-sync.md` and the tests to reflect the new format.
+2. Bump the version in `.cortex/MAINTAIN.md`.
 3. Add an entry to `CHANGELOG.md`.
 
 ## Commit message conventions
@@ -106,6 +102,6 @@ CORTEX follows three rules:
 
 1. **No runtime dependencies** — It's Markdown and bash. Nothing more.
 2. **Agent-agnostic knowledge** — `.cortex/` is shared; agent-specific config lives in `.claude/` or `.opencode/`.
-3. **Living documentation** — MAP.md is maintained by the agent, not by hand.
+3. **Living documentation** — the folder map is maintained by the agent through `cortex-map.sh`, not by hand.
 
 If your contribution respects these rules, it will be welcome.
