@@ -21,6 +21,10 @@ case "${1:-}" in --files|--dirs) MODE="$1"; shift ;; esac
 ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
 cd "$ROOT" 2>/dev/null || exit 0
 
+# Decided once: every later branch reuses it.
+IN_GIT=0
+git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 && IN_GIT=1
+
 FLOOR_RE='^(\.git|\.cortex|\.claude|\.opencode)(/|$)'
 
 # Both branches emit NUL-delimited paths, so nothing ever quotes, escapes or
@@ -31,7 +35,7 @@ FLOOR_RE='^(\.git|\.cortex|\.claude|\.opencode)(/|$)'
 # fragment. Delimiting on NUL removes both failure modes at the source instead
 # of pattern-matching their symptoms afterwards.
 list_files_raw() {
-  if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [ "$IN_GIT" = 1 ]; then
     # Tracked + untracked-but-not-ignored, all respecting .gitignore.
     # -z is what disables quoting entirely, so core.quotePath never applies.
     git -C "$ROOT" ls-files -z --cached --others --exclude-standard 2>/dev/null
@@ -66,7 +70,7 @@ to_lines() {
 # reports what is on disk in both branches. awk keys on ARGV[1], not NR==FNR,
 # so an empty deleted list cannot swallow the real one.
 list_files() {
-  if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [ "$IN_GIT" = 1 ]; then
     list_files_raw | to_lines | awk 'FILENAME == ARGV[1] { gone[$0] = 1; next } !($0 in gone)' \
       <(git -C "$ROOT" ls-files -z --deleted 2>/dev/null | to_lines) -
   else

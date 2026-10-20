@@ -73,46 +73,91 @@ copy_file() {
   cp "$src" "$dst"
 }
 
-# Idempotent jq merge: add key=value to a JSON object file.
-# Creates the file with {} if it doesn't exist.
-json_set() {
-  local file="$1" key="$2" value="$3"
-  local tmp
-  tmp="$(mktemp)"
-  if [ ! -f "$file" ]; then
+# Set when a step is skipped for a reason the user must fix; makes the
+# installer exit non-zero at the end.
+INSTALL_FAILED=0
+
+# True when the target is inside a git work tree.
+is_git() { git -C "$1" rev-parse --is-inside-work-tree >/dev/null 2>&1; }
+
+# True when the file is absent, empty (made into {}) or a single JSON object.
+# Anything else is reported, flags the run as failed and returns 1 so the
+# caller skips the merge (the file is never overwritten).
+json_ok() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  if ! grep -q '[^[:space:]]' "$file" 2>/dev/null; then
     echo '{}' > "$file"
+    return 0
   fi
-  jq --argjson val "$value" ".\"$key\" = \$val" "$file" > "$tmp" && mv "$tmp" "$file"
+  if jq -e -s 'length == 1 and (.[0] | type) == "object"' "$file" >/dev/null 2>&1; then
+    return 0
+  fi
+  err "$(basename "$file") is not valid JSON (a single object is required) ($file) — left untouched; fix it and re-run"
+  INSTALL_FAILED=1
+  return 1
+}
+
+# Run a jq filter over a file through a temp file, replacing it only on
+# success and never leaving the temp file behind.
+jq_edit() {
+  local file="$1" tmp
+  shift
+  tmp="$(mktemp)"
+  if jq "$@" "$file" > "$tmp"; then
+    mv "$tmp" "$file"
+  else
+    rm -f "$tmp"
+    return 1
+  fi
 }
 
 # Idempotent: add a string to a JSON array at key, no duplicates.
+# Creates the file with {} if it doesn't exist.
 json_array_add() {
   local file="$1" key="$2" item="$3"
-  local tmp
-  tmp="$(mktemp)"
-  if [ ! -f "$file" ]; then
-    echo '{}' > "$file"
-  fi
-  jq --arg item "$item" --arg key "$key" \
+  [ -f "$file" ] || echo '{}' > "$file"
+  jq_edit "$file" --arg item "$item" --arg key "$key" \
     'if (.[$key] | type) == "array"
      then if (.[$key] | index($item)) == null then .[$key] += [$item] else . end
      else .[$key] = [$item]
-     end' \
-    "$file" > "$tmp" && mv "$tmp" "$file"
+     end'
 }
 
 # Idempotent: add a hook command to settings.json under an event.
 # Existing (foreign) hooks are preserved.
 settings_add_hook() {
-  local file="$1" event="$2" cmd="$3" tmp
-  tmp="$(mktemp)"
-  jq --arg ev "$event" --arg cmd "$cmd" '
+  local file="$1" event="$2" cmd="$3"
+  jq_edit "$file" --arg ev "$event" --arg cmd "$cmd" '
     .hooks[$ev] //= [] |
     if ([.hooks[$ev][] | (.hooks // [])[] | select(.command == $cmd)] | length) > 0
     then .
     else .hooks[$ev] += [{"hooks":[{"type":"command","command":$cmd}]}]
     end
-  ' "$file" > "$tmp" && mv "$tmp" "$file"
+  '
+}
+
+# End the last line of a file with a newline when it lacks one.
+file_end_line() {
+  local file="$1"
+  if [ -s "$file" ] && [ -n "$(tail -c1 "$file")" ]; then printf '\n' >> "$file"; fi
+}
+
+# Append lines to a .gitignore (created if missing), starting a new block:
+# one blank separator line only when the file already has content.
+gitignore_append_block() {
+  local file="$1"
+  shift
+  file_end_line "$file"
+  if [ -s "$file" ]; then printf '\n' >> "$file"; fi
+  printf '%s\n' "$@" >> "$file"
+}
+
+# Append a single line directly after the existing content.
+gitignore_append_line() {
+  local file="$1" line="$2"
+  file_end_line "$file"
+  printf '%s\n' "$line" >> "$file"
 }
 
 # Remove exact-match lines from a file (portable replacement for sed -i).
@@ -213,11 +258,10 @@ install_knowledge() {
   done
 
   # With git, the tree snapshot is local state: keep it out of commits.
-  if git -C "$target" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if is_git "$target"; then
     local gitignore="$target/.gitignore"
-    [ -f "$gitignore" ] || touch "$gitignore"
     if ! grep -qxF '.cortex/.state/' "$gitignore" 2>/dev/null; then
-      printf '\n# CORTEX local tree snapshot\n.cortex/.state/\n' >> "$gitignore"
+      gitignore_append_block "$gitignore" '# CORTEX local tree snapshot' '.cortex/.state/'
       ok "Added .cortex/.state/ to .gitignore"
     fi
   fi
@@ -245,10 +289,12 @@ install_claude() {
   # settings.json — merge only SubagentStart and Stop (idempotent)
   local settings="$target/.claude/settings.json"
   if command -v jq >/dev/null 2>&1; then
-    [ -f "$settings" ] || echo '{}' > "$settings"
-    settings_add_hook "$settings" SubagentStart "bash .claude/hooks/cortex-subagent.sh"
-    settings_add_hook "$settings" Stop "bash .claude/hooks/cortex-stop.sh"
-    ok "Merged SubagentStart and Stop hooks into .claude/settings.json"
+    if json_ok "$settings"; then
+      [ -f "$settings" ] || echo '{}' > "$settings"
+      settings_add_hook "$settings" SubagentStart "bash .claude/hooks/cortex-subagent.sh"
+      settings_add_hook "$settings" Stop "bash .claude/hooks/cortex-stop.sh"
+      ok "Merged SubagentStart and Stop hooks into .claude/settings.json"
+    fi
   else
     warn "jq not found — skipping settings.json merge (install jq and re-run)"
   fi
@@ -262,20 +308,18 @@ install_claude() {
     fi
   done
 
-  # .gitignore — track settings.json, ignore settings.local.json
-  local gitignore="$target/.gitignore"
-  if [ ! -f "$gitignore" ]; then
-    touch "$gitignore"
-    ok "Created .gitignore"
-  fi
-  # Remove old blanket ignore of .claude/settings.json if present
-  if grep -qxF ".claude/settings.json" "$gitignore" 2>/dev/null; then
-    gitignore_drop_line "$gitignore" ".claude/settings.json"
-    warn "Removed .claude/settings.json from .gitignore (it should now be committed)"
-  fi
-  if ! grep -q "\.claude/settings\.local\.json" "$gitignore" 2>/dev/null; then
-    echo ".claude/settings.local.json" >> "$gitignore"
-    ok "Added .claude/settings.local.json to .gitignore"
+  # .gitignore — only with git: track settings.json, ignore settings.local.json
+  if is_git "$target"; then
+    local gitignore="$target/.gitignore"
+    # Remove old blanket ignore of .claude/settings.json if present
+    if grep -qxF ".claude/settings.json" "$gitignore" 2>/dev/null; then
+      gitignore_drop_line "$gitignore" ".claude/settings.json"
+      warn "Removed .claude/settings.json from .gitignore (it should now be committed)"
+    fi
+    if ! grep -q "\.claude/settings\.local\.json" "$gitignore" 2>/dev/null; then
+      gitignore_append_line "$gitignore" ".claude/settings.local.json"
+      ok "Added .claude/settings.local.json to .gitignore"
+    fi
   fi
 }
 
@@ -289,10 +333,12 @@ install_opencode() {
   # opencode.json — merge instructions (idempotent)
   local oc_json="$target/opencode.json"
   if command -v jq >/dev/null 2>&1; then
-    json_array_add "$oc_json" "instructions" ".cortex/LOOKUP.md"
-    json_array_add "$oc_json" "instructions" ".cortex/MAINTAIN.md"
-    json_array_add "$oc_json" "instructions" ".cortex/PROJECT.md"
-    ok "Merged CORTEX instructions into opencode.json"
+    if json_ok "$oc_json"; then
+      json_array_add "$oc_json" "instructions" ".cortex/LOOKUP.md"
+      json_array_add "$oc_json" "instructions" ".cortex/MAINTAIN.md"
+      json_array_add "$oc_json" "instructions" ".cortex/PROJECT.md"
+      ok "Merged CORTEX instructions into opencode.json"
+    fi
   else
     warn "jq not found — skipping opencode.json merge (install jq and re-run)"
   fi
@@ -429,6 +475,12 @@ fi
 
 echo ""
 echo "  ───────────────────────────────────────"
+if [ "$INSTALL_FAILED" -ne 0 ]; then
+  echo -e "  ${RED}✖ CORTEX installed in${NC} $TARGET ${RED}with errors${NC} (see above)"
+  echo ""
+  echo "  Fix the invalid JSON file(s) and re-run the installer."
+  exit 1
+fi
 echo -e "  ${GREEN}✔ CORTEX installed in${NC} $TARGET"
 echo ""
 echo "  Next steps:"

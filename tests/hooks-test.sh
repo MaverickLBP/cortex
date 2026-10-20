@@ -184,6 +184,27 @@ for MODE in git plain; do
     assert_silent "[$MODE] staged-then-deleted folder → silent" "$(run_stop "$C")"
   fi
 
+  # A reconcile that fails half-way: what was done is reported with the error,
+  # never as a block. The second move's map destination is blocked by a plain
+  # file where its mirror directory must go (fails even for root).
+  F="$TMP/stop-fail-$MODE"; make_project "$F" "$MODE"; mkdir -p "$F/a" "$F/b" "$F/x"
+  printf 'x\n' > "$F/a/f.js"; printf 'x\n' > "$F/b/g.js"; printf 'x\n' > "$F/x/h.js"
+  for d in a b x; do CORTEX_ROOT="$F" bash "$F/.cortex/scripts/cortex-map.sh" --set "$d" "D $d."; done
+  run_stop "$F" >/dev/null
+  mv "$F/a" "$F/a2"; mv "$F/b" "$F/x/b"; printf 'blocker\n' > "$F/.cortex/map/x"
+  o="$(run_stop "$F")"; rc=$?
+  m="$(printf '%s' "$o" | jq -r '.systemMessage // empty')"
+  assert_eq "[$MODE] partial failure → exit 0" "$rc" 0
+  assert_contains "[$MODE] partial failure → incomplete message" "$m" "CORTEX map update incomplete: moved a → a2; error: "
+  assert_contains "[$MODE] partial failure → points to /cortex-sync" "$m" ". Run /cortex-sync."
+  assert_not_contains "[$MODE] partial failure → no block" "$o" '"decision"'
+  rm -f "$F/.cortex/map/x"
+
+  # A scan failure happens before anything is touched: silent, as before.
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$F/.cortex/scripts/cortex-scan.sh"
+  mkdir -p "$F/brand-new"; printf 'x\n' > "$F/brand-new/f.js"
+  assert_silent "[$MODE] scan failure → silent" "$(run_stop "$F")"
+
   # [RF 3] project root containing a space
   SP="$TMP/My Projects-stop-$MODE/app"; make_project "$SP" "$MODE"; mkdir -p "$SP/src"; printf 'x\n' > "$SP/src/a.js"
   CORTEX_ROOT="$SP" bash "$SP/.cortex/scripts/cortex-map.sh" --set src "Source."

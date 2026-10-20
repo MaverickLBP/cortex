@@ -131,6 +131,54 @@ mkdir -p "$P/my folder/it's" "$P/documentación"; printf 'x\n' > "$P/my folder/i
 CORTEX_ROOT="$P" bash "$MAPSH" --set "my folder/it's" "Quoted name."; assert_eq "[$MODE] apostrophe+space" "$?" "0"
 CORTEX_ROOT="$P" bash "$MAPSH" --set "documentación" "Docs."; assert_eq "[$MODE] accented name" "$?" "0"
 
+echo "== [$MODE] find: accented capitals fold (Latin-1 in UTF-8) =="
+Z="$TMP/fold-$MODE"; mk_project "$Z" "$MODE"
+mkdir -p "$Z/ordenes" "$Z/Ñandú"; printf 'x\n' > "$Z/ordenes/a.js"; printf 'x\n' > "$Z/Ñandú/b.js"
+CORTEX_ROOT="$Z" bash "$MAPSH" --set ordenes "Gestión de Órdenes."
+CORTEX_ROOT="$Z" bash "$MAPSH" --set "Ñandú" "Birds."
+assert_has "[$MODE] find lower accented term" "$(CORTEX_ROOT="$Z" bash "$MAPSH" --find órdenes)" "ordenes/"
+assert_has "[$MODE] find upper accented term" "$(CORTEX_ROOT="$Z" bash "$MAPSH" --find ÓRDENES)" "ordenes/"
+assert_has "[$MODE] find folder name Ñandú by ñandú" "$(CORTEX_ROOT="$Z" bash "$MAPSH" --find ñandú)" "Ñandú/"
+assert_no  "[$MODE] multiplication sign is not folded" "$(CORTEX_ROOT="$Z" bash "$MAPSH" --find 'gestión de ÷rdenes')" "ordenes/"
+
+echo "== [$MODE] check: invalid UTF-8 names are unrepresentable =="
+BADN="$(printf 'bad\377name')"
+mkdir -p "$Z/$BADN" 2>/dev/null; printf 'x\n' > "$Z/$BADN/f.js" 2>/dev/null
+CORTEX_ROOT="$Z" bash "$MAPSH" --check "$BADN" 2>/dev/null; assert_eq "[$MODE] check rejects 0xFF byte" "$?" "2"
+assert_no "[$MODE] drift never lists invalid UTF-8" "$(CORTEX_ROOT="$Z" bash "$MAPSH" --drift 2>/dev/null | od -c)" "377"
+assert_no "[$MODE] reconcile never lists invalid UTF-8 as pending" "$(CORTEX_ROOT="$Z" bash "$MAPSH" --reconcile 2>/dev/null | od -c)" "377"
+CORTEX_ROOT="$Z" bash "$MAPSH" --check "documentación/Ñandú"; assert_eq "[$MODE] check accepts valid accented name" "$?" "0"
+
+echo "== [$MODE] set: trims whitespace; rejected set leaves nothing behind =="
+CORTEX_ROOT="$Z" bash "$MAPSH" --set ordenes "  Source.  "
+assert_eq "[$MODE] set trims" "$(cat "$Z/.cortex/map/ordenes.cortex")" "Source."
+CORTEX_ROOT="$Z" bash "$MAPSH" --set ordenes "$(printf ' \t ')" 2>/dev/null; assert_eq "[$MODE] blank still rejected" "$?" "2"
+mkdir -p "$Z/fresh"
+CORTEX_ROOT="$Z" bash "$MAPSH" --set fresh "$(printf 'a\nb')" 2>/dev/null
+assert_eq "[$MODE] invalid desc leaves no file" "$([ -e "$Z/.cortex/map/fresh.cortex" ] && echo y || echo n)" "n"
+CORTEX_ROOT="$Z" bash "$MAPSH" --set nodir/sub "Desc." 2>/dev/null
+assert_eq "[$MODE] missing dir leaves no file" "$([ -e "$Z/.cortex/map/nodir.cortex" ] || [ -e "$Z/.cortex/map/nodir" ] && echo y || echo n)" "n"
+CORTEX_ROOT="$Z" bash "$MAPSH" --set ".git/x" "Desc." 2>/dev/null
+assert_eq "[$MODE] invalid dir leaves no file" "$([ -e "$Z/.cortex/map/.git" ] && echo y || echo n)" "n"
+
+echo "== [$MODE] check: direct cases =="
+for bad in ".git/x" ".cortex/x" "a.cortex" "a/b.cortex/c"; do
+  CORTEX_ROOT="$Z" bash "$MAPSH" --check "$bad" 2>/dev/null; assert_eq "[$MODE] check rejects [$bad]" "$?" "2"
+done
+CORTEX_ROOT="$Z" bash "$MAPSH" --check "src/ok" 2>/dev/null; assert_eq "[$MODE] check accepts [src/ok]" "$?" "0"
+
+echo "== [$MODE] drift: round trip for spaces, apostrophes, accents =="
+Y="$TMP/rt-$MODE"; mk_project "$Y" "$MODE"
+mkdir -p "$Y/my dir/it's" "$Y/año/ñu"; printf 'x\n' > "$Y/my dir/it's/f"; printf 'x\n' > "$Y/año/ñu/f"
+assert_eq "[$MODE] round trip: all listed exactly" "$(CORTEX_ROOT="$Y" bash "$MAPSH" --drift)" "$(printf '+ año\n+ año/ñu\n+ my dir\n+ my dir/it'"'"'s')"
+for dd in "my dir" "my dir/it's" "año" "año/ñu"; do CORTEX_ROOT="$Y" bash "$MAPSH" --set "$dd" "D."; done
+assert_eq "[$MODE] round trip: described are not listed" "$(CORTEX_ROOT="$Y" bash "$MAPSH" --drift)" ""
+
+echo "== guard: unresolvable script dir with CORTEX_ROOT unset =="
+g_out="$(env -u CORTEX_ROOT bash -c "$(cat "$MAPSH")" "$TMP/no-such-dir/cortex-map.sh" --check x 2>&1)"; g_rc=$?
+assert_eq "root guard: exit 2" "$g_rc" "2"
+assert_has "root guard: clear message" "$g_out" "cannot resolve"
+
 echo "== [$MODE] drift: + for undescribed, - for gone =="
 mkdir -p "$P/lib"; printf 'x\n' > "$P/lib/z.py"
 printf 'Old.\n' > "$P/.cortex/map/gone.cortex"
@@ -278,6 +326,112 @@ o="$(rc "$Q")"
 assert_no  "[$MODE] copy: no move" "$o" "moved"
 assert_eq  "[$MODE] copy: b pending" "$o" "$(printf 'pending\tb')"
 assert_eq  "[$MODE] copy: a intact" "$(cat "$Q/.cortex/map/a.cortex")" "A."
+
+echo "== [$MODE] reconcile: nested rename, parent scores low on its own =="
+# Most of p's files live in p/c, which is renamed too: p alone matches q on 2
+# of 5 paths, so p is only recognised once p/c -> q/d is folded into its score.
+Q="$TMP/nest-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/p/c" "$Q/p/z"
+printf 'x\n' > "$Q/p/a.js"; for f in b e h; do printf 'x\n' > "$Q/p/c/$f.js"; done; printf 'x\n' > "$Q/p/z/g.js"
+for d in p p/c p/z; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; mv "$Q/p" "$Q/q"; mv "$Q/q/c" "$Q/q/d"
+o="$(rc "$Q")"
+assert_eq  "[$MODE] nested low: output" "$o" "$(printf 'moved\tp\tq\nmoved\tp/c\tq/d')"
+assert_eq  "[$MODE] nested low: parent description" "$(cat "$Q/.cortex/map/q.cortex" 2>/dev/null)" "D p."
+assert_eq  "[$MODE] nested low: child description" "$(cat "$Q/.cortex/map/q/d.cortex" 2>/dev/null)" "D p/c."
+assert_eq  "[$MODE] nested low: carried sibling" "$(cat "$Q/.cortex/map/q/z.cortex" 2>/dev/null)" "D p/z."
+assert_eq  "[$MODE] nested low: drift empty" "$(CORTEX_ROOT="$Q" bash "$MAPSH" --drift)" ""
+assert_eq  "[$MODE] nested low: idempotent" "$(rc "$Q")" ""
+
+echo "== [$MODE] reconcile: nested rename, parent matches on its own =="
+# p matches q directly; its subfolder p/c no longer sits at q/c and must be
+# matched on its own instead of following p to a folder that does not exist.
+Q="$TMP/nest2-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/p/c" "$Q/p/z"
+for f in a y w; do printf 'x\n' > "$Q/p/$f.js"; done; printf 'x\n' > "$Q/p/c/b.js"; printf 'x\n' > "$Q/p/z/g.js"
+for d in p p/c p/z; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; mv "$Q/p" "$Q/q"; mv "$Q/q/c" "$Q/q/d"
+o="$(rc "$Q")"
+assert_eq  "[$MODE] nested high: output" "$o" "$(printf 'moved\tp\tq\nmoved\tp/c\tq/d')"
+assert_eq  "[$MODE] nested high: parent description" "$(cat "$Q/.cortex/map/q.cortex" 2>/dev/null)" "D p."
+assert_eq  "[$MODE] nested high: child description" "$(cat "$Q/.cortex/map/q/d.cortex" 2>/dev/null)" "D p/c."
+assert_eq  "[$MODE] nested high: carried sibling" "$(cat "$Q/.cortex/map/q/z.cortex" 2>/dev/null)" "D p/z."
+assert_eq  "[$MODE] nested high: drift empty" "$(CORTEX_ROOT="$Q" bash "$MAPSH" --drift)" ""
+
+echo "== [$MODE] reconcile: ties prefer the same name, then the same parent =="
+# Equal scores everywhere. By name alone b/one would go to a/sub/dos and
+# src/util to src/aaa; location must win instead.
+Q="$TMP/tie-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/x/one" "$Q/y/two" "$Q/b/one" "$Q/a/sub/two" "$Q/src/util"
+for d in x/one y/two b/one a/sub/two src/util; do printf 'x\n' > "$Q/$d/index.js"; CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+printf 'x\n' > "$Q/src/keep.js"
+for d in src x y b a a/sub; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null
+mv "$Q/x/one" "$Q/x/uno"; mv "$Q/y/two" "$Q/y/dos"; mv "$Q/b/one" "$Q/b/uno"; mv "$Q/a/sub/two" "$Q/a/sub/dos"
+mkdir -p "$Q/zz"; mv "$Q/src/util" "$Q/zz/util"; mkdir -p "$Q/src/aaa"; printf 'x\n' > "$Q/src/aaa/index.js"
+o="$(rc "$Q")"
+assert_has "[$MODE] tie: x/one -> x/uno" "$o" "$(printf 'moved\tx/one\tx/uno')"
+assert_has "[$MODE] tie: y/two -> y/dos" "$o" "$(printf 'moved\ty/two\ty/dos')"
+assert_has "[$MODE] tie: b/one -> b/uno (same parent beats lower name)" "$o" "$(printf 'moved\tb/one\tb/uno')"
+assert_has "[$MODE] tie: a/sub/two -> a/sub/dos" "$o" "$(printf 'moved\ta/sub/two\ta/sub/dos')"
+assert_has "[$MODE] tie: src/util -> zz/util (same name beats same parent)" "$o" "$(printf 'moved\tsrc/util\tzz/util')"
+assert_has "[$MODE] tie: src/aaa pending" "$o" "$(printf 'pending\tsrc/aaa')"
+
+echo "== [$MODE] reconcile: every level of single-file folders renamed =="
+# a, a/b and a/b/c each hold one f.js. All scores tie at every level, so only
+# the shape of each folder (file depths inside it) and its depth tell them apart.
+Q="$TMP/chain-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/a/b/c"
+for d in a a/b a/b/c; do printf 'x\n' > "$Q/$d/f.js"; CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; mv "$Q/a" "$Q/x"; mv "$Q/x/b" "$Q/x/y"; mv "$Q/x/y/c" "$Q/x/y/z"
+o="$(rc "$Q")"
+assert_eq  "[$MODE] chain: output" "$o" "$(printf 'moved\ta\tx\nmoved\ta/b\tx/y\nmoved\ta/b/c\tx/y/z')"
+assert_eq  "[$MODE] chain: a kept" "$(cat "$Q/.cortex/map/x.cortex" 2>/dev/null)" "D a."
+assert_eq  "[$MODE] chain: a/b kept" "$(cat "$Q/.cortex/map/x/y.cortex" 2>/dev/null)" "D a/b."
+assert_eq  "[$MODE] chain: a/b/c kept" "$(cat "$Q/.cortex/map/x/y/z.cortex" 2>/dev/null)" "D a/b/c."
+assert_eq  "[$MODE] chain: drift empty" "$(CORTEX_ROOT="$Q" bash "$MAPSH" --drift)" ""
+assert_eq  "[$MODE] chain: idempotent" "$(rc "$Q")" ""
+
+echo "== [$MODE] reconcile: equal shape, the same depth beats the lower name =="
+Q="$TMP/dep-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/a/b"; printf 'x\n' > "$Q/a/keep.js"; printf 'x\n' > "$Q/a/b/g.js"
+for d in a a/b; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; mkdir -p "$Q/zz"; mv "$Q/a/b" "$Q/zz/q"; mkdir -p "$Q/e"; printf 'x\n' > "$Q/e/g.js"
+o="$(rc "$Q")"
+assert_has "[$MODE] depth: a/b -> zz/q" "$o" "$(printf 'moved\ta/b\tzz/q')"
+assert_has "[$MODE] depth: e pending" "$o" "$(printf 'pending\te')"
+
+echo "== [$MODE] reconcile: equal depth, the same shape beats the lower name =="
+Q="$TMP/shp-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/m/k"; printf 'x\n' > "$Q/m/keep.js"; printf 'x\n' > "$Q/m/k/f.js"
+for d in m m/k; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; mkdir -p "$Q/n/aa/other"; mv "$Q/m/k" "$Q/n/zz"; printf 'x\n' > "$Q/n/aa/f.js"; printf 'x\n' > "$Q/n/aa/other/x.js"
+o="$(rc "$Q")"
+assert_has "[$MODE] shape: m/k -> n/zz" "$o" "$(printf 'moved\tm/k\tn/zz')"
+assert_has "[$MODE] shape: n/aa pending" "$o" "$(printf 'pending\tn/aa')"
+
+echo "== [$MODE] reconcile: a removed subfolder of a moved parent is reported by its old path =="
+Q="$TMP/rmsub-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/p/c"
+printf 'x\n' > "$Q/p/a.js"; printf 'x\n' > "$Q/p/b.js"; printf 'x\n' > "$Q/p/c/k.js"
+for d in p p/c; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; mv "$Q/p" "$Q/q"; rm -rf "$Q/q/c"
+o="$(rc "$Q")"
+assert_eq  "[$MODE] rmsub: output" "$o" "$(printf 'moved\tp\tq\nremoved\tp/c')"
+assert_no  "[$MODE] rmsub: never the new path" "$o" "q/c"
+assert_eq  "[$MODE] rmsub: description gone" "$([ -e "$Q/.cortex/map/q/c.cortex" ] && echo y || echo n)" "n"
+assert_eq  "[$MODE] rmsub: parent kept" "$(cat "$Q/.cortex/map/q.cortex" 2>/dev/null)" "D p."
+assert_eq  "[$MODE] rmsub: drift empty" "$(CORTEX_ROOT="$Q" bash "$MAPSH" --drift)" ""
+
+echo "== [$MODE] reconcile: a failing step reports what was done, then the error =="
+# The map destination of the second move is blocked by a plain file where its
+# mirror directory must go: mkdir fails even for root, unlike chmod.
+Q="$TMP/pf-$MODE"; mk_project "$Q" "$MODE"; mkdir -p "$Q/a" "$Q/b" "$Q/x" "$Q/gone"
+printf 'x\n' > "$Q/a/f.js"; printf 'x\n' > "$Q/b/g.js"; printf 'x\n' > "$Q/x/h.js"; printf 'x\n' > "$Q/gone/k.js"
+for d in a b x gone; do CORTEX_ROOT="$Q" bash "$MAPSH" --set "$d" "D $d."; done
+rc "$Q" >/dev/null; cp "$Q/.cortex/.state/tree" "$TMP/pf-tree-$MODE"
+mv "$Q/a" "$Q/a2"; mv "$Q/b" "$Q/x/b"; rm -rf "$Q/gone"; printf 'blocker\n' > "$Q/.cortex/map/x"
+o="$(rc "$Q" 2>/dev/null)"; prc=$?
+assert_eq  "[$MODE] partial: non-zero exit" "$([ "$prc" -ne 0 ] && echo y || echo n)" "y"
+assert_eq  "[$MODE] partial: done line then error line" "$(printf '%s\n' "$o" | cut -f1 | tr '\n' ' ')" "moved error "
+assert_eq  "[$MODE] partial: first line is the move" "$(printf '%s\n' "$o" | sed -n 1p)" "$(printf 'moved\ta\ta2')"
+assert_has "[$MODE] partial: error names the folder" "$(printf '%s\n' "$o" | sed -n 2p)" "b"
+assert_eq  "[$MODE] partial: the move happened" "$(cat "$Q/.cortex/map/a2.cortex" 2>/dev/null)" "D a."
+assert_eq  "[$MODE] partial: snapshot not written" "$(cat "$Q/.cortex/.state/tree")" "$(cat "$TMP/pf-tree-$MODE")"
+rm -f "$Q/.cortex/map/x"
 
 if [ "$MODE" = git ]; then
   echo "== [git] reconcile: gitignored new folder is not pending =="

@@ -44,8 +44,11 @@ MAPSH="$PROJ/.cortex/scripts/cortex-map.sh"
 ANY="$(find "$PROJ/.cortex/map" -name '*.cortex' -type f -print -quit 2>/dev/null || true)"
 [ -z "$ANY" ] && exit 0
 
-# A failed scan changes nothing and must not block: stay silent.
-OUT="$(CORTEX_ROOT="$PROJ" bash "$MAPSH" --reconcile 2>/dev/null)" || exit 0
+# A failed reconcile never blocks. If it failed before touching anything (a
+# failed scan) it printed nothing: stay silent. If it failed half-way, it
+# printed what it had done and then an `error` line: report both.
+OUT="$(CORTEX_ROOT="$PROJ" bash "$MAPSH" --reconcile 2>/dev/null)"
+RC=$?
 
 # Render a folder name as a single-quoted shell literal. The suggestions below
 # are meant to be run verbatim by an agent, and a folder name is arbitrary
@@ -64,6 +67,7 @@ DONE=""
 LIST=""
 NPEND=0
 NDONE=0
+ERR=""
 TAB="$(printf '\t')"
 while IFS="$TAB" read -r kind a b; do
   case "$kind" in
@@ -75,6 +79,9 @@ while IFS="$TAB" read -r kind a b; do
       NDONE=$((NDONE + 1))
       [ "$NDONE" -le "$MAX" ] && DONE="${DONE:+$DONE; }removed $a"
       ;;
+    error)
+      ERR="$a"
+      ;;
     pending)
       NPEND=$((NPEND + 1))
       [ "$NPEND" -le "$MAX" ] && LIST="${LIST}• ${a}
@@ -84,6 +91,14 @@ while IFS="$TAB" read -r kind a b; do
   esac
 done <<< "$OUT"
 [ "$NDONE" -gt "$MAX" ] && DONE="${DONE}; …and $((NDONE - MAX)) more"
+
+if [ "$RC" -ne 0 ]; then
+  if [ -n "$DONE" ] || [ -n "$ERR" ]; then
+    MSG="CORTEX map update incomplete: ${DONE:+$DONE; }error: ${ERR:-unknown}. Run /cortex-sync."
+    jq -nc --arg m "$MSG" '{systemMessage:$m}' 2>/dev/null || true
+  fi
+  exit 0
+fi
 
 if [ "$NPEND" -gt 0 ]; then
   REASON="CORTEX — describe the new folders before finishing this turn:

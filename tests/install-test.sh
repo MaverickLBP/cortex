@@ -86,6 +86,79 @@ out="$(bash "$I" --agent claude --source "$REPO_ROOT" "$T" 2>&1)"
 assert_no "no warning when clean" "$out" "Upgrading from v5"
 assert_has "final message" "$out" "Run /cortex-sync to generate the folder map."
 
+echo "== invalid JSON in target config =="
+for CASE in settings opencode; do
+  T="$TMP/badjson-$CASE"; mkdir -p "$T/.claude"
+  if [ "$CASE" = settings ]; then BADF="$T/.claude/settings.json"; else BADF="$T/opencode.json"; fi
+  printf '{ "broken": [1, 2,\n' > "$BADF"; cp "$BADF" "$TMP/bad-$CASE.orig"
+  mkdir -p "$TMP/tmpdir-$CASE"
+  out="$(TMPDIR="$TMP/tmpdir-$CASE" bash "$I" --agent both --source "$REPO_ROOT" "$T" 2>&1)"; rc=$?
+  [ "$rc" -ne 0 ] && ok "[$CASE] exit non-zero" || no "[$CASE] exit non-zero" "got 0"
+  assert_has "[$CASE] error names the file" "$out" "$(basename "$BADF")"
+  assert_eq "[$CASE] file byte-identical" "$(cmp -s "$BADF" "$TMP/bad-$CASE.orig" && echo y || echo n)" "y"
+  assert_eq "[$CASE] other artifacts installed" "$(ls "$T/.cortex/LOOKUP.md" "$T/.claude/rules/cortex.md" "$T/.claude/hooks/cortex-stop.sh" "$T/.opencode/commands/cortex-sync.md" 2>/dev/null | wc -l | tr -d ' ')" "4"
+  assert_eq "[$CASE] no temp files left" "$(ls -A "$TMP/tmpdir-$CASE" | wc -l | tr -d ' ')" "0"
+done
+
+echo "== .gitignore handling =="
+T="$TMP/gi-plain"; mkdir -p "$T"
+bash "$I" --agent both --source "$REPO_ROOT" "$T" >/dev/null 2>&1
+assert_eq "plain: no .gitignore created" "$([ -e "$T/.gitignore" ] && echo y || echo n)" "n"
+T="$TMP/gi-plain2"; mkdir -p "$T"; printf 'node_modules/\nfoo' > "$T/.gitignore"; cp "$T/.gitignore" "$TMP/gi.orig"
+bash "$I" --agent both --source "$REPO_ROOT" "$T" >/dev/null 2>&1
+assert_eq "plain: existing .gitignore byte-identical" "$(cmp -s "$T/.gitignore" "$TMP/gi.orig" && echo y || echo n)" "y"
+T="$TMP/gi-git"; mkdir -p "$T"; git -C "$T" init -q
+bash "$I" --agent both --source "$REPO_ROOT" "$T" >/dev/null 2>&1
+bash "$I" --agent both --source "$REPO_ROOT" "$T" >/dev/null 2>&1
+assert_eq "git: state entry once" "$(grep -cxF '.cortex/.state/' "$T/.gitignore")" "1"
+assert_eq "git: settings.local entry once" "$(grep -cxF '.claude/settings.local.json' "$T/.gitignore")" "1"
+assert_eq "git: fresh .gitignore has no leading blank line" "$(head -1 "$T/.gitignore" | grep -c '^$' | tr -d ' ')" "0"
+
+echo "== non-object, empty and multi-document config files =="
+for CASE in settings opencode; do
+  for KIND in array string multi; do
+    T="$TMP/odd-$CASE-$KIND"; mkdir -p "$T/.claude"
+    if [ "$CASE" = settings ]; then F="$T/.claude/settings.json"; else F="$T/opencode.json"; fi
+    case "$KIND" in array) printf '[]\n' > "$F" ;; string) printf '"x"\n' > "$F" ;; multi) printf '{"a":1}{"b":2}\n' > "$F" ;; esac
+    cp "$F" "$TMP/odd.orig"
+    out="$(bash "$I" --agent both --source "$REPO_ROOT" "$T" 2>&1)"; rc=$?
+    [ "$rc" -ne 0 ] && ok "[$CASE/$KIND] exit non-zero" || no "[$CASE/$KIND] exit non-zero" "got 0"
+    assert_has "[$CASE/$KIND] reports invalid JSON" "$out" "not valid JSON"
+    assert_eq "[$CASE/$KIND] file byte-identical" "$(cmp -s "$F" "$TMP/odd.orig" && echo y || echo n)" "y"
+    assert_eq "[$CASE/$KIND] other artifacts installed" "$(ls "$T/.cortex/LOOKUP.md" "$T/.claude/rules/cortex.md" "$T/.claude/hooks/cortex-stop.sh" "$T/.opencode/commands/cortex-sync.md" 2>/dev/null | wc -l | tr -d ' ')" "4"
+  done
+  for KIND in zero blank; do
+    T="$TMP/empty-$CASE-$KIND"; mkdir -p "$T/.claude"
+    if [ "$CASE" = settings ]; then F="$T/.claude/settings.json"; else F="$T/opencode.json"; fi
+    case "$KIND" in zero) : > "$F" ;; blank) printf ' \n\n' > "$F" ;; esac
+    bash "$I" --agent both --source "$REPO_ROOT" "$T" >/dev/null 2>&1; rc=$?
+    assert_eq "[$CASE/$KIND] exit 0" "$rc" "0"
+  done
+  if [ "$CASE" = settings ]; then
+    assert_eq "[settings/zero] hooks merged" "$(jq -r '.hooks|keys|join(",")' "$TMP/empty-settings-zero/.claude/settings.json")" "Stop,SubagentStart"
+    assert_eq "[settings/blank] hooks merged" "$(jq -r '.hooks|keys|join(",")' "$TMP/empty-settings-blank/.claude/settings.json")" "Stop,SubagentStart"
+  else
+    assert_has "[opencode/zero] instructions merged" "$(jq -r '.instructions|join(",")' "$TMP/empty-opencode-zero/opencode.json")" ".cortex/LOOKUP.md"
+    assert_has "[opencode/blank] instructions merged" "$(jq -r '.instructions|join(",")' "$TMP/empty-opencode-blank/opencode.json")" ".cortex/LOOKUP.md"
+  fi
+done
+
+echo "== .gitignore separators =="
+T="$TMP/gi-nonl"; mkdir -p "$T"; git -C "$T" init -q; printf 'node_modules/' > "$T/.gitignore"
+bash "$I" --agent claude --source "$REPO_ROOT" "$T" >/dev/null 2>&1
+assert_eq "no trailing newline: exact content" "$(cat "$T/.gitignore")" "node_modules/
+
+# CORTEX local tree snapshot
+.cortex/.state/
+.claude/settings.local.json"
+T="$TMP/gi-nl"; mkdir -p "$T"; git -C "$T" init -q; printf 'node_modules/\n' > "$T/.gitignore"
+bash "$I" --agent claude --source "$REPO_ROOT" "$T" >/dev/null 2>&1
+assert_eq "trailing newline: exact content" "$(cat "$T/.gitignore")" "node_modules/
+
+# CORTEX local tree snapshot
+.cortex/.state/
+.claude/settings.local.json"
+
 echo "== self-install =="
 S="$TMP/self"; cp -R "$REPO_ROOT" "$S"; rm -rf "$S/.git"
 cp "$S/.cortex/PROJECT.md" "$TMP/self-project.md"

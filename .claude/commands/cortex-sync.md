@@ -67,7 +67,7 @@ Re-run the detection cascade and update the Tech Stack table in `.cortex/PROJECT
 2. Record unparsed manifest-looking files (`mix.exs`, `deno.json`, `*.csproj`) as present.
 3. Extension histogram — guarantees the table is never empty:
    ```bash
-   bash .cortex/scripts/cortex-scan.sh --files | sed 's/.*\.//' | sort | uniq -c | sort -rn | head -15
+   bash .cortex/scripts/cortex-scan.sh --files | sed 's/.*\.//' | sort | uniq -c | sort -rn | awk 'NR<=15'
    ```
 4. Refine versions from `.nvmrc`, `.tool-versions`, Dockerfile `FROM`, CI files.
 

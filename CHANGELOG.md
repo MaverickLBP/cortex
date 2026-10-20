@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.1] — 2026-10-19
+
+### Fixed
+- `cortex-map.sh --reconcile` matches renames in repeated passes, so a subfolder renamed inside a
+  renamed or unchanged parent keeps its description, and a parent's move no longer reports every
+  child as moved.
+- Rename ties are broken deterministically: equal scores prefer the candidate with the same last
+  name, then the one in the same parent folder, then the one with the same shape (as many files at
+  each depth inside it), then the one at the same depth in the tree, then the lowest name. A chain
+  of single-file folders renamed at every level now keeps every description.
+- A described subfolder deleted inside a renamed parent is reported as `removed` under the path it
+  had, not under the new path it never existed at.
+- A partial `--reconcile` failure is no longer silent: each change is printed once it is on disk, a
+  later failure ends the output with an `error` line and a non-zero exit, and the Stop hook reports
+  it as a non-blocking message.
+- `--find` folds accented capital letters, so `FACTURACIÓN` and `facturación` match each other.
+- Folder names that are not valid UTF-8 are rejected as unrepresentable instead of corrupting the
+  map, and descriptions are trimmed of surrounding whitespace.
+- `cortex-map.sh` guards the `ROOT` resolution, and the scan checks for a git work tree once instead of on every listing.
+- `install.sh` survives an invalid `.claude/settings.json` or `opencode.json` (unparseable, not a
+  single JSON object, or several documents): it names the file, skips only that merge without
+  touching the file, finishes every other step and exits non-zero. An empty file is treated as `{}`.
+- `install.sh` leaves `.gitignore` alone when the target is not a git repository (it used to create
+  one for `.claude/settings.local.json`). With git, a fresh `.gitignore` no longer starts blank.
+- The `/cortex-sync` extension histogram no longer ends in `| head`, which broke under `pipefail`.
+
 ## [6.0.0] — 2026-10-19
 
 ### Changed
@@ -319,7 +345,9 @@ that is a decision rather than something the code shows.
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v5.0.3...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.0.1...HEAD
+[6.0.1]: https://github.com/MaverickLBP/cortex/compare/v6.0.0...v6.0.1
+[6.0.0]: https://github.com/MaverickLBP/cortex/compare/v5.0.3...v6.0.0
 [5.0.3]: https://github.com/MaverickLBP/cortex/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/MaverickLBP/cortex/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/MaverickLBP/cortex/compare/v5.0.0...v5.0.1
