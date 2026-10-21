@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CORTEX — A dynamic knowledge layer for Claude Code and OpenCode. Persistent project knowledge via a per-folder map. Zero dependencies.">
+  <meta name="description" content="CORTEX — A dynamic knowledge layer for Claude Code and OpenCode. Persistent project knowledge via a per-folder map. Only bash and jq required.">
   <title>CORTEX — Knowledge Layer for AI Coding Agents</title>
 
   <!-- Materialize CSS -->
@@ -62,7 +62,7 @@
       <h1 class="hero-title">Knowledge Layer for<br><span class="gradient-text">AI Coding Agents</span></h1>
       <p class="hero-subtitle flow-text">
         CORTEX gives your AI assistant a persistent, living map of your project.
-        No runtime dependencies. No lock-in. Just Markdown and bash.
+        No runtime dependencies beyond <code>jq</code>. No lock-in. Just Markdown and bash.
       </p>
       <div class="hero-actions">
         <a href="#install" class="btn-large waves-effect waves-light btn-primary">
@@ -75,7 +75,7 @@
       <div class="hero-tags">
         <span class="chip"><i class="material-icons">description</i>Markdown-first</span>
         <span class="chip"><i class="material-icons">devices</i>Claude Code &amp; OpenCode</span>
-        <span class="chip"><i class="material-icons">bolt</i>Zero dependencies</span>
+        <span class="chip"><i class="material-icons">bolt</i>Only bash &amp; jq</span>
         <span class="chip"><i class="material-icons">update</i>Auto-updating</span>
         <span class="chip"><i class="material-icons">account_tree</i>Scales to any repo size</span>
       </div>
@@ -181,11 +181,11 @@
         <div class="col s12 m4">
           <div class="step-card center-align">
             <div class="step-number green accent-2 white-text">2</div>
-            <h5>Work</h5>
+            <h5>Build the map</h5>
             <p class="grey-text text-darken-1">
-              Just start working. The agent finds folders with <code>cortex-map.sh --find</code>,
-              and the map reconciles as folders are added, renamed, or removed —
-              no separate initialization step.
+              Run <code>/cortex-sync</code> once. Every folder is described by one agent and
+              verified by a second one against its real contents; large projects are split
+              across parallel subagents.
             </p>
             <div class="code-block">
               <code>/cortex-sync</code>
@@ -200,8 +200,10 @@
             <div class="step-number orange accent-2 white-text">3</div>
             <h5>Stay in sync</h5>
             <p class="grey-text text-darken-1">
-              Run <code>/cortex-sync</code> to reconcile the map after changes made outside a
-              session — a <code>git pull</code>, folders created by hand, a branch switch.
+              While you work, the agent finds folders with <code>cortex-map.sh --find</code> and
+              the map reconciles as folders are added, renamed or removed. Run
+              <code>/cortex-sync</code> after changes made outside a session — a
+              <code>git pull</code>, folders created by hand, a branch switch.
             </p>
             <div class="code-block">
               <code>/cortex-sync</code>
@@ -235,8 +237,10 @@
                 actually on disk. Idempotent: on a fresh project everything is missing,
                 so it generates the whole map; on a mature one it only closes the
                 gaps — describes folders that appeared, drops folders that are gone, refreshes the
-                Tech Stack table, and deduces Conventions the first time. There is no separate initialization
-                command.
+                Tech Stack table, and deduces Conventions the first time. Each description comes from the
+                folder's real contents through a work queue (<code>cortex-describe.sh</code>) and is verified
+                by a second agent; the sync only finishes when every folder is verified. There is no separate
+                initialization command.
               </p>
               <div class="divider"></div>
               <p class="grey-text text-darken-1" style="margin-top: 12px;">
@@ -325,18 +329,7 @@
       </div>
 
       <div class="row equal-height">
-        <div class="col s12 l6">
-          <div class="card install-bottom-card hoverable">
-            <div class="card-content">
-              <span class="card-title">Upgrading from v5</span>
-              <p>The installer never removes v5 files; it warns about them. Cleanup is manual and documented step by step in the changelog.</p>
-              <p class="grey-text text-darken-1" style="margin-top: 12px; font-size: 0.9rem;">
-                See <a href="https://github.com/MaverickLBP/cortex/blob/main/CHANGELOG.md">CHANGELOG.md</a> &rarr; &ldquo;Upgrading from v5&rdquo;.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col s12 l6">
+        <div class="col s12 l8 offset-l2">
           <div class="card install-bottom-card hoverable">
             <div class="card-content">
               <span class="card-title">After Installing</span>
@@ -380,7 +373,7 @@
           </h6>
           <p class="grey-text text-lighten-1">
             Knowledge layer for Claude Code and OpenCode.<br>
-            Markdown-first. Zero dependencies.
+            Markdown-first. Only bash and jq required.
           </p>
         </div>
         <div class="col s12 m4 offset-m2">

@@ -169,44 +169,6 @@ gitignore_drop_line() {
   rm -f "$tmp"
 }
 
-# ── v5 leftovers ───────────────────────────────────────
-
-# Report (never modify) files and settings entries left by CORTEX v5.
-warn_v5_leftovers() {
-  local target="$1" found=() f
-  for f in .cortex/SYSTEM.md .cortex/MAP.md \
-           .claude/hooks/cortex-session.sh .claude/hooks/cortex-file-change.sh; do
-    [ -e "$target/$f" ] && found+=("$f")
-  done
-  local settings="$target/.claude/settings.json"
-  if [ -f "$settings" ] && command -v jq >/dev/null 2>&1; then
-    if [ "$(jq '[.. | objects | .command? // empty | strings
-                 | select(test("cortex-session\\.sh|cortex-file-change\\.sh"))] | length' \
-            "$settings" 2>/dev/null || echo 0)" != "0" ]; then
-      found+=(".claude/settings.json (hook entries for cortex-session.sh / cortex-file-change.sh)")
-    fi
-  fi
-  local oc="$target/opencode.json"
-  if [ -f "$oc" ] && command -v jq >/dev/null 2>&1; then
-    if [ "$(jq '[(.instructions? // []) | if type == "array" then .[] else empty end | strings
-                 | select(test("(^|/)\\.cortex/(SYSTEM|MAP)\\.md$"))] | length' \
-            "$oc" 2>/dev/null || echo 0)" != "0" ]; then
-      found+=("opencode.json (instructions entries for .cortex/SYSTEM.md / .cortex/MAP.md)")
-    fi
-  fi
-  if [ -f "$target/.gitignore" ] && grep -qE '^/?\.cortex/\.touched/?[[:space:]]*$' "$target/.gitignore" 2>/dev/null; then
-    found+=(".gitignore (entry for .cortex/.touched/)")
-  fi
-  if [ "${#found[@]}" -gt 0 ]; then
-    echo ""
-    warn "CORTEX v5 leftovers found (not modified):"
-    for f in "${found[@]}"; do
-      echo "      - $f"
-    done
-    warn "See CHANGELOG 6.0.0 → \"Upgrading from v5\""
-  fi
-}
-
 # ── Install .cortex/ knowledge ─────────────────────────
 
 install_knowledge() {
@@ -370,8 +332,6 @@ install_cortex() {
     err "Directory not found: '$target'"
     exit 1
   }
-
-  warn_v5_leftovers "$target"
 
   # Knowledge (always)
   install_knowledge "$target" "$src"

@@ -27,7 +27,7 @@ A clear and concise description of what you expected to happen.
 
 - **OS:** (e.g. Ubuntu 24.04, macOS 15, Windows 11)
 - **Agent:** (e.g. Claude Code, OpenCode, Cursor)
-- **CORTEX version:** (e.g. 3.1.0)
+- **CORTEX version:** (e.g. 6.2.0)
 - **Shell:** (e.g. bash 5.2, zsh 5.9)
 
 ## Additional context

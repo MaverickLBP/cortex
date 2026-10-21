@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   synonyms go in separate calls), and that once the map names a folder the agent opens it instead
   of repeating a repository-wide search.
 
+### Removed
+- The installer's warning about v5 leftovers and the "Upgrading from v5" notes (README, web,
+  changelog): updating CORTEX means reinstalling it from scratch.
+
+### Documentation
+- README and web state the `jq` requirement instead of claiming zero dependencies, and the web
+  describes the verified work queue behind `/cortex-sync`.
+- README documents that the `Stop` hook pauses while a `/cortex-sync` queue runs and the 20-minute
+  claim lease. `CONTRIBUTING.md` lists the four test harnesses, and the PR and bug templates no
+  longer refer to `MAP.md` or to version 3.1.0.
+
 ## [6.1.3] — 2026-10-21
 
 ### Fixed
@@ -121,8 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   section is still `_None yet._`; after that Conventions and Notes belong to the user.
 - `/cortex-sync` is rewritten: reconcile, describe pending folders, refresh Tech Stack, deduce
   Conventions (first run only), verify with `--drift`.
-- The installer adds `.cortex/.state/` to `.gitignore` when the project uses git, and warns (without
-  touching anything) when it finds v5 leftovers.
+- The installer adds `.cortex/.state/` to `.gitignore` when the project uses git.
 
 ### Removed
 - `SYSTEM.md` and `MAP.md`.
@@ -130,33 +140,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plus the `.cortex/.touched/` record.
 - `cortex-map.sh --validate`, `--lookup`, `--remove` and `--move` (reconciliation covers them).
 - Workspace mode: `install-workspace-bridge.sh` and `.cortex-workspace.json`.
-
-### Breaking
-- v6 does not migrate a v5 install. Remove the v5 files by hand (below) and install v6. Open branches
-  that edited `MAP.md` will hit a modify/delete conflict once; resolve it by deleting `MAP.md`.
-
-### Upgrading from v5
-
-Everything from v5 is deleted, including `PROJECT.md`: v6 installs the template and `/cortex-sync`
-fills it in (Tech Stack detected, Conventions deduced from the code). Because `PROJECT.md` is in git,
-nothing is lost; review `git diff .cortex/PROJECT.md` afterwards and restore by hand any convention
-that is a decision rather than something the code shows.
-
-1. Delete the files:
-   ```bash
-   rm -rf .cortex .claude/hooks/cortex-*.sh .claude/commands/cortex-sync.md .opencode/commands/cortex-sync.md
-   ```
-2. In `.claude/settings.json`, remove only the hook entries whose `command` points at
-   `.claude/hooks/cortex-*`, keeping any hooks that are not CORTEX's:
-   ```bash
-   jq 'if .hooks then .hooks |= (map_values(map(.hooks |= map(select((.command // "") | test("\\.claude/hooks/cortex-") | not))) | map(select(.hooks | length > 0))) | with_entries(select(.value | length > 0))) | (if .hooks == {} then del(.hooks) else . end) else . end' .claude/settings.json > .claude/settings.json.tmp && mv .claude/settings.json.tmp .claude/settings.json
-   ```
-3. In `opencode.json` (if present), remove `.cortex/SYSTEM.md`, `.cortex/MAP.md` and
-   `.cortex/PROJECT.md` from `instructions`. v6 adds its own.
-4. In `.gitignore`, remove `.cortex/.touched/` and its comment.
-5. Workspace mode: delete `.cortex-workspace.json` if it exists in any parent directory.
-6. Run the v6 installer, then run `/cortex-sync` to generate the map and deduce Conventions.
-7. Commit the cleanup, the install and the generated map together.
 
 ## [5.0.3] — 2026-08-24
 
@@ -411,7 +394,8 @@ that is a decision rather than something the code shows.
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.3...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.2.0...HEAD
+[6.2.0]: https://github.com/MaverickLBP/cortex/compare/v6.1.3...v6.2.0
 [6.1.3]: https://github.com/MaverickLBP/cortex/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/MaverickLBP/cortex/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/MaverickLBP/cortex/compare/v6.1.0...v6.1.1

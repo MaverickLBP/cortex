@@ -56,8 +56,7 @@ bash .cortex/scripts/cortex-describe.sh --init --all    # every folder
 ```
 
 Use `--all` whenever the existing descriptions did not come through this queue: the first sync after
-installing or upgrading, a map written by hand or by an older `/cortex-sync`, or any map that looks
-generic. Without it only folders that have no description at `--init` time are checked.
+installing, a map written by hand or by an older `/cortex-sync`, or any map that looks generic. Without it only folders that have no description at `--init` time are checked.
 
 `--init` resumes a queue left half-done by an earlier run and picks up new or renamed folders; run it
 again only when no worker is alive, because it releases every unfinished claim. `--init --restart`

@@ -53,42 +53,6 @@ assert_eq "cortex stop once" "$(jq -r '[.hooks.Stop[].hooks[].command]|map(selec
 assert_eq "unrelated key kept" "$(jq -r '.other' "$T/.claude/settings.json")" "1"
 assert_eq "PROJECT.md untouched" "$(cat "$T/.cortex/PROJECT.md")" "MY PROJECT"
 
-echo "== v5 leftovers =="
-T="$TMP/v5"; mkdir -p "$T/.cortex" "$T/.claude/hooks"
-echo old > "$T/.cortex/SYSTEM.md"; echo old > "$T/.cortex/MAP.md"
-echo old > "$T/.claude/hooks/cortex-session.sh"; echo old > "$T/.claude/hooks/cortex-file-change.sh"
-cat > "$T/.claude/settings.json" <<'J'
-{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"bash .claude/hooks/cortex-session.sh"}]}]}}
-J
-out="$(bash "$I" --agent claude --source "$REPO_ROOT" "$T" 2>&1)"
-assert_has "warns upgrade" "$out" "Upgrading from v5"
-assert_has "lists SYSTEM.md" "$out" ".cortex/SYSTEM.md"
-assert_has "lists session hook" "$out" "cortex-session.sh"
-assert_eq "v5 files remain" "$(ls "$T/.cortex/SYSTEM.md" "$T/.cortex/MAP.md" "$T/.claude/hooks/cortex-session.sh" "$T/.claude/hooks/cortex-file-change.sh" | wc -l | tr -d ' ')" "4"
-assert_has "v5 settings entry kept" "$(cat "$T/.claude/settings.json")" "cortex-session.sh"
-T="$TMP/v5b"; mkdir -p "$T/.claude"
-cat > "$T/.claude/settings.json" <<'J'
-{"hooks":{"PostToolUse":[{"hooks":[{"type":"command","command":"bash .claude/hooks/cortex-file-change.sh"}]}]}}
-J
-out="$(bash "$I" --agent claude --source "$REPO_ROOT" "$T" 2>&1)"
-assert_has "settings-only leftover warns" "$out" "Upgrading from v5"
-T="$TMP/v5c"; mkdir -p "$T"
-printf '{"instructions":[".cortex/SYSTEM.md",".cortex/MAP.md","AGENTS.md"]}\n' > "$T/opencode.json"
-cp "$T/opencode.json" "$TMP/v5c-opencode.json"
-out="$(bash "$I" --agent claude --source "$REPO_ROOT" "$T" 2>&1)"
-assert_has "opencode instructions leftover warns" "$out" "Upgrading from v5"
-assert_has "lists opencode.json instructions" "$out" "opencode.json (instructions entries for .cortex/SYSTEM.md / .cortex/MAP.md)"
-assert_eq "opencode.json untouched" "$(cat "$T/opencode.json")" "$(cat "$TMP/v5c-opencode.json")"
-T="$TMP/v5d"; mkdir -p "$T"; printf 'node_modules/\n.cortex/.touched/\n' > "$T/.gitignore"
-out="$(bash "$I" --agent claude --source "$REPO_ROOT" "$T" 2>&1)"
-assert_has "gitignore .touched leftover warns" "$out" "Upgrading from v5"
-assert_has "lists .gitignore entry" "$out" ".gitignore (entry for .cortex/.touched/)"
-assert_has ".gitignore entry kept" "$(cat "$T/.gitignore")" ".cortex/.touched/"
-T="$TMP/clean"; mkdir -p "$T"
-out="$(bash "$I" --agent claude --source "$REPO_ROOT" "$T" 2>&1)"
-assert_no "no warning when clean" "$out" "Upgrading from v5"
-assert_has "final message" "$out" "Run /cortex-sync to generate the folder map."
-
 echo "== invalid JSON in target config =="
 for CASE in settings opencode; do
   T="$TMP/badjson-$CASE"; mkdir -p "$T/.claude"
@@ -203,9 +167,8 @@ echo "== documented bash floor matches the scripts (3.2, macOS) =="
 assert_has "PROJECT.md Tech Stack says Bash 3.2+" "$(cat "$REPO_ROOT/.cortex/PROJECT.md")" "| Bash | 3.2+ |"
 
 echo "== no stale v5 references in shipped files =="
-# install.sh is excluded on purpose: its v5-leftover warning must name the v5 files it detects.
 stale="$(cd "$REPO_ROOT" && grep -rn --exclude-dir=.state --exclude-dir=map -E 'SYSTEM\.md|MAP\.md|--validate|--lookup|--remove|--move|cortex-session|cortex-file-change|\.touched|cortex-workspace|workspace-bridge|[Ww]orkspace mode' \
-  .cortex .claude README.md CONTRIBUTING.md docs/index.html templates 2>/dev/null)"
+  install.sh .cortex .claude README.md CONTRIBUTING.md docs/index.html templates 2>/dev/null)"
 assert_eq "no stale references" "$stale" ""
 
 echo ""

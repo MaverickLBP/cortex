@@ -1,7 +1,7 @@
 # CORTEX — Knowledge layer for AI agents
 
 **A dynamic knowledge system for AI coding assistants.**
-Zero dependencies. Markdown + bash. Native enforcement for Claude Code and OpenCode.
+No runtime dependencies beyond `jq`. Markdown + bash. Native enforcement for Claude Code and OpenCode.
 
 CORTEX lives in `.cortex/` and gives your agent a complete, living map of every folder in the
 project — what each one contains and where new work belongs. It uses each agent's native
@@ -61,11 +61,12 @@ folder, and a merge request shows the map change as a plain added file.
 **Agents query the map instead of loading it.** `cortex-map.sh --find <term>…` returns the folders
 whose path or description contains every term, most relevant first (at most 40 lines). Subfolders
 that only match through a listed ancestor's name are folded into that ancestor's line as a count
-(`(+N subfolders match)`), so a broad term does not list a whole subtree. Renamed,
-moved and deleted folders need no work from the agent: `cortex-map.sh --reconcile` moves or drops
+(`(+N subfolders match)`), so a broad term does not list a whole subtree. Renamed, moved and deleted
+folders need no work from the agent: `cortex-map.sh --reconcile` moves or drops
 their descriptions on its own, using a local snapshot of the file list (`.cortex/.state/`, never
-committed). Only new folders need a description. In git repositories the map carries its own `.cortex/map/.gitignore`, so folders named like
-something your project ignores (e.g. `reports`) still get their descriptions committed.
+committed). Only new folders need a description. In git repositories the map carries its own
+`.cortex/map/.gitignore`, so folders named like something your project ignores (e.g. `reports`) still
+get their descriptions committed.
 
 It works the same with and without git. With git, `.gitignore` is respected; without it, common
 build and dependency folders are skipped.
@@ -80,7 +81,9 @@ build and dependency folders are skipped.
   - `cortex-stop.sh` (`Stop`) runs `--reconcile` at the end of every turn. It is stateless: if new
     folders still lack a description it blocks once per turn and lists up to 20 of them, each with a
     ready-to-copy `--set` command. If it only moved or removed descriptions, it just reports that.
-    It stays silent until the map has its first entry (run `/cortex-sync` after installing). Set
+    It stays silent until the map has its first entry (run `/cortex-sync` after installing) and while a
+    `/cortex-sync` queue is running, so it cannot invite shortcuts around it (the pause expires after
+    12 hours if a sync is abandoned). Set
     `CORTEX_STOP_HOOK=0` to disable it.
 - **OpenCode**: `opencode.json` → `instructions` auto-loads `.cortex/LOOKUP.md`,
   `.cortex/MAINTAIN.md` and `.cortex/PROJECT.md` at every session start.
@@ -95,6 +98,8 @@ same rule is followed by instruction alone — the map still converges, but noth
 ## Quick start
 
 ### 1. Install CORTEX in your project
+
+Requires `bash` 3.2+ and `jq`. To update CORTEX, reinstall it.
 
 Install in the current directory (interactive — asks which agent to configure):
 
@@ -124,9 +129,6 @@ the project uses git.
 — they register the hooks and load the knowledge. Per-user overrides go in
 `.claude/settings.local.json` (gitignored).
 
-**Upgrading from v5:** the installer never removes anything. It warns when it finds v5 leftovers
-and points at the manual cleanup steps in [CHANGELOG.md](./CHANGELOG.md) → "Upgrading from v5".
-
 ### 2. Build (and keep) the knowledge map
 
 ```
@@ -143,8 +145,11 @@ yours. It works identically on Claude Code and OpenCode.
 The descriptions are not left to the agent's discretion. `cortex-describe.sh` hands out one folder at
 a time with its real contents; a second agent verifies each description against the same contents, and
 the sync only finishes when `cortex-describe.sh --status` exits 0 — every folder verified, none changed
-since, none missing. Large projects are split across parallel subagents; an interrupted sync resumes.
-`cortex-describe.sh --report` shows who wrote and verified what, and warns when verification looks like a rubber stamp. Use `cortex-describe.sh --init --all` to redo a map whose descriptions turned out generic.
+since, none missing. Large projects are split across parallel subagents; an interrupted sync resumes,
+and a claim a dead worker leaves behind returns to the queue after 20 minutes
+(`CORTEX_DESCRIBE_LEASE_MIN`). `cortex-describe.sh --report` shows who wrote and verified what, and
+warns when verification looks like a rubber stamp. Use `cortex-describe.sh --init --all` to redo a map
+whose descriptions turned out generic.
 
 Run it after installing, and after structural changes made outside a session — a `git pull` that
 reshapes the tree, folders created by hand, a branch switch.

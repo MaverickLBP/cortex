@@ -29,7 +29,7 @@ Thank you for your interest in contributing. CORTEX is designed to be lightweigh
    ```
 3. Make your changes. Follow the existing style and conventions.
 4. Test your changes:
-   - Run the three harnesses: `bash tests/map-test.sh`, `bash tests/hooks-test.sh` and `bash tests/install-test.sh`. They are plain bash and need no agent session.
+   - Run the four harnesses: `bash tests/map-test.sh`, `bash tests/describe-test.sh`, `bash tests/hooks-test.sh` and `bash tests/install-test.sh`. They are plain bash and need no agent session.
    - Run `bash -n install.sh` to validate bash syntax.
    - Test the installer: `bash install.sh --source /path/to/cortex --agent claude /tmp/test-project`
    - Verify commands are copied to `.claude/commands/` and/or `.opencode/commands/` per agent.
