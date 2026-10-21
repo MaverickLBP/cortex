@@ -208,6 +208,38 @@ assert_eq "[$MODE] dirs lists described and undescribed folders" "$(CORTEX_ROOT=
 CORTEX_ROOT="$DR" bash "$MAPSH" --dirs extra 2>/dev/null; assert_eq "[$MODE] dirs rejects extra args" "$?" "2"
 assert_eq "[$MODE] dirs changes nothing" "$(find "$DR/.cortex/map" -type f | sort | xargs cat | md5sum)" "$before"
 
+
+if [ "$MODE" = git ]; then
+echo "== [git] map files must never be git-ignored =="
+GI="$TMP/gitign-git"; mk_project "$GI" git
+printf 'reports\n' > "$GI/.gitignore"
+mkdir -p "$GI/src/reports/sub"; printf 'x\n' > "$GI/src/reports/a.js"; printf 'x\n' > "$GI/src/reports/sub/b.js"
+( cd "$GI" && git add -f src/reports/a.js src/reports/sub/b.js )
+gm() { CORTEX_ROOT="$GI" bash "$MAPSH" "$@"; }
+gm --set src "Source area." 2>/dev/null; gm --set src/reports "Report screens." 2>/dev/null
+gm --set src/reports/sub "Report sub-widgets." 2>"$TMP/gi-err"
+assert_eq "[git] --set creates the map .gitignore" "$([ -f "$GI/.cortex/map/.gitignore" ] && echo y || echo n)" "y"
+assert_eq "[git] a folder under an ignored name is not ignored" "$(cd "$GI" && git check-ignore -q .cortex/map/src/reports/sub.cortex && echo ignored || echo ok)" "ok"
+assert_has "[git] git would add the nested map file" "$(cd "$GI" && git add -A -n)" "src/reports/sub.cortex"
+assert_eq "[git] --set stays quiet when nothing is ignored" "$(cat "$TMP/gi-err")" ""
+assert_eq "[git] --ignored is empty and exits 0" "$(gm --ignored; echo "rc=$?")" "rc=0"
+rm -f "$GI/.cortex/map/.gitignore"
+assert_eq "[git] --ignored lists the map files git would drop" "$(gm --ignored)" "src/reports/sub"
+gm --reconcile >/dev/null
+assert_eq "[git] --reconcile restores the map .gitignore" "$([ -f "$GI/.cortex/map/.gitignore" ] && echo y || echo n)" "y"
+assert_eq "[git] --ignored is empty after reconcile" "$(gm --ignored)" ""
+printf '.cortex/map/\n' > "$GI/.gitignore"
+gm --set src/reports "Report screens, revised." 2>"$TMP/gi-err"; assert_eq "[git] --set still succeeds when the map itself is ignored" "$?" "0"
+assert_has "[git] --set warns when git ignores the file it wrote" "$(cat "$TMP/gi-err")" "git ignores"
+assert_has "[git] --ignored lists them when the project ignores the map" "$(gm --ignored)" "src/reports"
+fi
+if [ "$MODE" = plain ]; then
+echo "== [plain] no git, no map .gitignore =="
+PI="$TMP/gitign-plain"; mk_project "$PI" plain; mkdir -p "$PI/lib"; printf 'x\n' > "$PI/lib/a.js"
+CORTEX_ROOT="$PI" bash "$MAPSH" --set lib "Libraries."
+assert_eq "[plain] no map .gitignore outside git" "$([ -e "$PI/.cortex/map/.gitignore" ] && echo y || echo n)" "n"
+assert_eq "[plain] --ignored is empty and exits 0" "$(CORTEX_ROOT="$PI" bash "$MAPSH" --ignored; echo "rc=$?")" "rc=0"
+fi
 echo "== [$MODE] [RF 3] project path containing a space =="
 S="$TMP/with space/$MODE"; mk_project "$S" "$MODE"; mkdir -p "$S/lib"; printf 'x\n' > "$S/lib/z.py"
 CORTEX_ROOT="$S" bash "$MAPSH" --set lib "Libraries."; assert_eq "[$MODE] set in spaced root" "$?" "0"

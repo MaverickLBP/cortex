@@ -1,0 +1,3 @@
+# Written by cortex-map.sh. The map mirrors source paths: without this, a folder named like
+# something the project ignores (e.g. "reports") would lose its descriptions from commits.
+!*

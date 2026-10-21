@@ -7,7 +7,7 @@
 #     .cortex/map/src.cortex        -> "Application source."
 #     .cortex/map/src/api.cortex    -> "HTTP handlers."
 # Nothing else may write these files.
-# Usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --dirs | --reconcile | --find <term>...
+# Usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --dirs | --ignored | --reconcile | --find <term>...
 # ──────────────────────────────────────────────────────
 set -uo pipefail
 
@@ -25,7 +25,7 @@ MAPDIR="$ROOT/.cortex/map"
 SCAN="$SCRIPT_DIR/cortex-scan.sh"
 
 usage() {
-  echo "usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --dirs | --reconcile | --find <term>..." >&2
+  echo "usage: cortex-map.sh --check <dir> | --set <dir> <desc> | --drift | --dirs | --ignored | --reconcile | --find <term>..." >&2
   exit 2
 }
 
@@ -85,6 +85,23 @@ validate_desc() {
   return 0
 }
 
+# in_git: exit 0 when the project is inside a git work tree.
+in_git() { git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; }
+
+# ensure_map_gitignore: the map mirrors source paths, so a folder named like something the
+# project ignores (e.g. "reports") would have its descriptions silently left out of commits.
+# A .gitignore inside the map, whose rules beat the project's, re-includes everything there.
+ensure_map_gitignore() {
+  [ -f "$MAPDIR/.gitignore" ] && return 0
+  in_git || return 0
+  mkdir -p "$MAPDIR" 2>/dev/null || return 0
+  printf '%s\n' \
+    '# Written by cortex-map.sh. The map mirrors source paths: without this, a folder named like' \
+    '# something the project ignores (e.g. "reports") would lose its descriptions from commits.' \
+    '!*' > "$MAPDIR/.gitignore" 2>/dev/null
+  return 0
+}
+
 # desc_file <dir>: path of the description file for <dir>.
 desc_file() { printf '%s\n' "$MAPDIR/${1%/}.cortex"; }
 
@@ -138,6 +155,7 @@ reconcile() {
   if [ ! -f "$SCAN" ]; then
     echo "cortex-map: scanner not found: $SCAN" >&2; return 1
   fi
+  ensure_map_gitignore
   W="$(mktemp -d)" || return 1
   trap 'rm -rf "${W:-}"' EXIT
   bash "$SCAN" --files "$ROOT" > "$W/files" || { echo "cortex-map: scan failed; nothing changed" >&2; return 1; }
@@ -350,7 +368,11 @@ case "${1:-}" in
     fi
     f="$(desc_file "$TARGET")"
     mkdir -p "$(dirname "$f")" || exit 1
+    ensure_map_gitignore
     printf '%s\n' "$DESC" > "$f" || exit 1
+    if in_git && git -C "$ROOT" check-ignore -q -- ".cortex/map/$TARGET.cortex" 2>/dev/null; then
+      echo "cortex-map: warning: git ignores .cortex/map/$TARGET.cortex, so it will not be committed (see --ignored)" >&2
+    fi
     ;;
   --drift)
     [ "$#" -eq 1 ] || usage
@@ -360,6 +382,14 @@ case "${1:-}" in
     drift_sets "$WORK/dirs" "$WORK/plus" "$WORK/minus"
     sed 's/^/+ /' "$WORK/plus"
     sed 's/^/- /' "$WORK/minus"
+    ;;
+  --ignored)
+    [ "$#" -eq 1 ] || usage
+    # Read-only: map entries git would leave out of a commit (git only; one folder per line).
+    in_git && [ -d "$MAPDIR" ] || exit 0
+    ( cd "$ROOT" && find ".cortex/map" -type f -name '*.cortex' -print0 | git check-ignore -z --stdin 2>/dev/null ) |
+      tr '\0' '\n' | sed -e 's|^\.cortex/map/||' -e 's|\.cortex$||' | LC_ALL=C sort
+    exit 0
     ;;
   --dirs)
     [ "$#" -eq 1 ] || usage

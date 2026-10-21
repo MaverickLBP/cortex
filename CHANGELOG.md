@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.3] — 2026-10-21
+
+### Fixed
+- Map descriptions of folders named like something the project's `.gitignore` excludes (for
+  example `reports`) were silently left out of commits. `cortex-map.sh` now writes a
+  `.cortex/map/.gitignore` (`!*`, in git repositories) on `--set` and `--reconcile`, so the
+  Stop hook and `/cortex-sync` repair existing installs by themselves.
+
+### Added
+- `cortex-map.sh --ignored` (read-only): map entries git would leave out of a commit.
+- `cortex-map.sh --set` warns when the file it wrote is git-ignored, and
+  `cortex-describe.sh --status` does not complete while any queued description is.
+
 ## [6.1.2] — 2026-10-20
 
 ### Added
@@ -386,7 +399,8 @@ that is a decision rather than something the code shows.
 - Web landing page for GitHub Pages
 - README with installation and usage instructions
 
-[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.2...HEAD
+[Unreleased]: https://github.com/MaverickLBP/cortex/compare/v6.1.3...HEAD
+[6.1.3]: https://github.com/MaverickLBP/cortex/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/MaverickLBP/cortex/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/MaverickLBP/cortex/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/MaverickLBP/cortex/compare/v6.0.1...v6.1.0

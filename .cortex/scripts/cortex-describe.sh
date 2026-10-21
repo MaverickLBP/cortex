@@ -483,6 +483,9 @@ show_status() {
   scope_list | LC_ALL=C sort > "$w/scope"
   bash "$MAPSH" --drift | sed -n 's/^+ //p' | LC_ALL=C sort > "$w/pending"
   while IFS= read -r d; do [ -n "$d" ] && block "$d" "new folder not in the queue"; done < <(comm -13 "$w/scope" "$w/pending")
+  # A description git would leave out of the commit is not a finished description.
+  bash "$MAPSH" --ignored | LC_ALL=C sort > "$w/ignored"
+  while IFS= read -r d; do [ -n "$d" ] && block "$d" "map file ignored by git (it would not be committed)"; done < <(comm -12 "$w/scope" "$w/ignored")
   rm -rf "$w"
   printf 'todo=%s claimed=%s written=%s verified=%s needs-human=%s\n' "$todo" "$claimed" "$written" "$verified" "$human"
   [ -n "$blocked" ] && printf '%s' "$blocked"

@@ -28,7 +28,9 @@ wc -l < .cortex/.state/reconcile.txt
 The script does everything that needs no judgement: folders that were renamed or moved take their
 description (and their subfolders') with them, and folders that disappeared lose theirs. It writes
 what it moved and removed, and lists the new folders that still have no description. Step 2 builds its
-work queue from them. If it exits non-zero, stop and report its error: nothing was changed.
+work queue from them. In a git repository it also writes `.cortex/map/.gitignore`, which keeps the
+map out of the project's ignore rules (a folder called `reports` would otherwise lose its descriptions
+from commits). If it exits non-zero, stop and report its error: nothing was changed.
 
 The output goes to a file because on a fresh, large repository it lists every folder — far more than
 a single command's output can show. Read it in chunks of 200 lines, never all at once and never
@@ -134,7 +136,10 @@ bash .cortex/scripts/cortex-describe.sh --status
 The sync is finished only when this exits `0`: every folder in the queue is verified, none of the
 descriptions changed after verification, and no folder is missing from the queue. Otherwise it prints
 a counts line and one `BLOCKED` line per problem (at most 50): fix those (more writer or verifier
-rounds, `--init` to pick up new folders, `--reset` for `needs-human`) and run it again. If folders stay
+rounds, `--init` to pick up new folders, `--reset` for `needs-human`) and run it again. A `BLOCKED` line saying
+"map file ignored by git" means the project's own `.gitignore` excludes `.cortex` or `.cortex/map`, which
+the map cannot override: tell the user to remove that rule (`cortex-map.sh --ignored` lists the affected
+folders) instead of working around it. If folders stay
 `needs-human`, report "done with exceptions" and list them; never report the sync as complete.
 
 Run `bash .cortex/scripts/cortex-describe.sh --report` and put its numbers in your report: submissions,

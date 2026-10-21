@@ -33,7 +33,7 @@ project/
 │   └── scripts/
 │       ├── cortex-scan.sh       ← Gitignore-aware folder enumeration
 │       ├── cortex-describe.sh   ← The work queue /cortex-sync uses to describe and verify every folder
-│       └── cortex-map.sh        ← The only writer of the map (--set / --find / --reconcile / --drift / --dirs / --check)
+│       └── cortex-map.sh        ← The only writer of the map (--set / --find / --reconcile / --drift / --dirs / --ignored / --check)
 │
 ├── .claude/                     ← Claude Code only
 │   ├── settings.json            ← Registers CORTEX hooks (commit this)
@@ -62,7 +62,8 @@ folder, and a merge request shows the map change as a plain added file.
 whose path or description contains every term, most relevant first (at most 40 lines). Renamed,
 moved and deleted folders need no work from the agent: `cortex-map.sh --reconcile` moves or drops
 their descriptions on its own, using a local snapshot of the file list (`.cortex/.state/`, never
-committed). Only new folders need a description.
+committed). Only new folders need a description. In git repositories the map carries its own `.cortex/map/.gitignore`, so folders named like
+something your project ignores (e.g. `reports`) still get their descriptions committed.
 
 It works the same with and without git. With git, `.gitignore` is respected; without it, common
 build and dependency folders are skipped.

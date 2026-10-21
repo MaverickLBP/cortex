@@ -440,5 +440,16 @@ assert_has "[$MODE] a worker acting in both roles is flagged" "$(dud --report)" 
 CORTEX_ROOT="$TMP/none-$MODE" bash "$DESCSH" --report 2>/dev/null; assert_eq "[$MODE] report without a queue fails" "$?" "1"
 done
 
+echo "== [git] status: a map file git ignores blocks completion =="
+IG="$TMP/ignored-gate"; mk_project "$IG" git; printf '.cortex/map/\n' > "$IG/.gitignore"; mkf "$IG" src
+CORTEX_ROOT="$IG" bash "$DESCSH" --init >/dev/null; run_to_completion "$IG"
+o="$(CORTEX_ROOT="$IG" bash "$DESCSH" --status)"; rc=$?
+assert_eq "[git] ignored map files keep --status from completing" "$rc" "1"
+assert_has "[git] the reason says git would drop it" "$o" "$(printf 'BLOCKED\tsrc\tmap file ignored by git')"
+IR="$TMP/ignored-root"; mk_project "$IR" git; printf 'reports\n' > "$IR/.gitignore"
+mkdir -p "$IR/src/reports"; printf 'x\n' > "$IR/src/reports/a.js"; ( cd "$IR" && git add -f src/reports/a.js )
+CORTEX_ROOT="$IR" bash "$DESCSH" --init >/dev/null; run_to_completion "$IR"
+CORTEX_ROOT="$IR" bash "$DESCSH" --status >/dev/null; assert_eq "[git] a folder named like an ignored pattern completes" "$?" "0"
+
 echo ""; echo "describe-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
