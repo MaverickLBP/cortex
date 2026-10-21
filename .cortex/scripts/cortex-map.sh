@@ -453,9 +453,37 @@ case "${1:-}" in
         if (ok) print (g1 ? 1 : (g2 ? 2 : 3)) "\t" dir "\t" desc
       }' |
     sort -t "$(printf '\t')" -k1,1n -k2,2 |
+    # A rank-2 match owes it to an ancestor's name, not its own: when that
+    # ancestor is listed too, fold the match into the ancestor's line as a
+    # count instead of repeating the whole subtree.
     CORTEX_FIND_QUERY="$QUERY" awk -F'\t' '
-      { c++; if (c <= 40) print $2 "/  " $3 }
+      { n++; R[n] = $1; D[n] = $2; S[n] = $3; at[$2] = n }
       END {
+        # Walking up, the host is the nearest listed ancestor that stays
+        # listed: one ranked 1, or the topmost ranked 2. A rank-3 ancestor
+        # matched on its description alone and hosts nothing: a broad
+        # description would otherwise swallow a whole tree.
+        for (i = 1; i <= n; i++) {
+          if (R[i] != 2) continue
+          p = D[i]; host = 0
+          while (sub(/\/[^\/]*$/, "", p)) {
+            if (!(p in at)) continue
+            if (R[at[p]] == 3) break
+            host = at[p]
+            if (R[host] == 1) break
+          }
+          if (host) { gone[i] = 1; folded[host]++ }
+        }
+        c = 0
+        for (i = 1; i <= n; i++) {
+          if (gone[i]) continue
+          c++
+          if (c > 40) continue
+          line = D[i] "/  " S[i]
+          if (folded[i] == 1) line = line " (+1 subfolder matches)"
+          else if (folded[i] > 1) line = line " (+" folded[i] " subfolders match)"
+          print line
+        }
         if (c == 0) print "No folder matches: " ENVIRON["CORTEX_FIND_QUERY"]
         else if (c > 40) print "… " (c - 40) " more — add another term to narrow"
       }'

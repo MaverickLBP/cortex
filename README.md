@@ -59,7 +59,9 @@ belong in `PROJECT.md`). Two branches only conflict if they change the descripti
 folder, and a merge request shows the map change as a plain added file.
 
 **Agents query the map instead of loading it.** `cortex-map.sh --find <term>…` returns the folders
-whose path or description contains every term, most relevant first (at most 40 lines). Renamed,
+whose path or description contains every term, most relevant first (at most 40 lines). Subfolders
+that only match through a listed ancestor's name are folded into that ancestor's line as a count
+(`(+N subfolders match)`), so a broad term does not list a whole subtree. Renamed,
 moved and deleted folders need no work from the agent: `cortex-map.sh --reconcile` moves or drops
 their descriptions on its own, using a local snapshot of the file list (`.cortex/.state/`, never
 committed). Only new folders need a description. In git repositories the map carries its own `.cortex/map/.gitignore`, so folders named like

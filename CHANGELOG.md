@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.2.0] — 2026-10-21
+
+### Changed
+- `cortex-map.sh --find` folds subfolders that only match through a listed ancestor's name into
+  that ancestor's line, as `(+N subfolders match)`. On a 997-folder project `--find incident` went
+  from 40 lines plus an overflow line to 19, the rest being folders whose own name or description
+  matches. An ancestor matched on its description alone folds nothing, so a broad description
+  cannot hide a subtree.
+- `LOOKUP.md` says that several `--find` terms must all match (pair a domain word with a kind word;
+  synonyms go in separate calls), and that once the map names a folder the agent opens it instead
+  of repeating a repository-wide search.
+
 ## [6.1.3] — 2026-10-21
 
 ### Fixed
